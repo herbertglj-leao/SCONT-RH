@@ -993,18 +993,7 @@
         }
 
        
-   // ===== CONFIGURAÇÃO SUPABASE =====
-        const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co';
-        const SUPABASE_ANON_KEY = 'sua-chave-publica-aqui';
-        
-        let supabaseClient = null;
-        
-        function getSupabaseClient() {
-            if (!supabaseClient) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
-            return supabaseClient;
-        }
+  
 
         // ===== CONFIGURAÇÃO DE ESTRUTURA DE PASTAS =====
         const BUCKET_CONFIG = {
