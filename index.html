@@ -462,6 +462,12 @@
             transform: translateY(0);
         }
 
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-secondary {
             background-color: var(--gray-300);
             color: var(--gray-800);
@@ -497,15 +503,10 @@
             box-shadow: 0 6px 16px rgba(37, 211, 102, 0.2);
         }
 
-        .btn-download {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, #5A8C3A 100%);
-            color: white;
-            box-shadow: var(--box-shadow-lg);
-        }
-
-        .btn-download:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(112, 173, 71, 0.2);
+        .btn-whatsapp:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* ===== MODAL ===== */
@@ -604,6 +605,33 @@
 
         .share-options .icon {
             font-size: 18px;
+        }
+
+        /* ===== SUCCESS MESSAGE ===== */
+        .success-message {
+            background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);
+            border: 1px solid #C3E6CB;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* ===== UTILITY CLASSES ===== */
@@ -899,7 +927,15 @@
                 <button type="button" id="addSocioBtn" class="btn btn-add-socio">+ ADICIONAR SÓCIO</button>
             </section>
 
-     
+            <!-- SEÇÃO 5: INFORMAÇÕES ADICIONAIS -->
+            <section class="form-section">
+                <h2 class="section-title">INFORMAÇÕES ADICIONAIS</h2>
+                <div class="info-box">
+                    <p><strong>Honorário:</strong> R$ 600,00 (elaboração e registro do processo de alteração na JUCIS/DF, RFB, SEFAZ/DF e DF Legal). Pagamento via boleto bancário.</p>
+                    <p><strong>Taxa JUCIS:</strong> R$ 430,96 (registro da alteração junto à JUCIS).</p>
+                    <p><strong>Requisito:</strong> Será necessário ter o selo de confiabilidade emitido no portal gov.br para assinatura do processo.</p>
+                </div>
+            </section>
 
             <!-- SEÇÃO 6: CLÁUSULA DE RESPONSABILIDADE -->
             <section class="form-section">
@@ -935,7 +971,7 @@
 
             <!-- BOTÕES DE AÇÃO -->
             <section class="form-section button-section">
-                <button type="submit" class="btn btn-primary">SALVAR E GERAR PDF</button>
+                <button type="submit" class="btn btn-primary">SALVAR E ENVIAR</button>
                 <button type="reset" class="btn btn-secondary">LIMPAR FORMULÁRIO</button>
             </section>
 
@@ -946,29 +982,44 @@
     <div id="shareModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Compartilhar Formulário</h2>
+                <h2>Formulário Enviado com Sucesso!</h2>
                 <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Escolha como deseja compartilhar o formulário preenchido:</p>
+                <div class="success-message show">
+                    <strong>✅ Sucesso!</strong> Seu formulário foi salvo em nossa base de dados.
+                </div>
+                <p>Seus dados foram registrados com sucesso. Clique no botão abaixo para notificar via WhatsApp que o formulário foi enviado.</p>
                 <div class="share-options">
                     <button type="button" id="shareWhatsapp" class="btn btn-whatsapp">
                         <span class="icon">💬</span>
-                        <span>Enviar por WhatsApp</span>
-                    </button>
-                    <button type="button" id="downloadPDF" class="btn btn-download">
-                        <span class="icon">⬇️</span>
-                        <span>Baixar PDF</span>
+                        <span>Notificar via WhatsApp</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+    // ===== CONFIGURAÇÃO SUPABASE =====
+    // SUBSTITUA PELAS SUAS CHAVES DO SUPABASE
+    const SUPABASE_URL = 'https://supabase.com/dashboard/project/graxaoomeffhsazuzkvg';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI';
+    
+    // Criar cliente Supabase apenas uma vez
+    let supabaseClient = null;
+    
+    function getSupabaseClient() {
+        if (!supabaseClient) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        return supabaseClient;
+    }
+
     // ===== CONFIGURAÇÕES GLOBAIS =====
     const CONFIG = {
         WHATSAPP_NUMERO: '+5561993543223',
@@ -980,7 +1031,6 @@
     const shareModal = document.getElementById('shareModal');
     const modalClose = document.querySelector('.modal-close');
     const shareWhatsapp = document.getElementById('shareWhatsapp');
-    const downloadPDF = document.getElementById('downloadPDF');
     const sociosContainer = document.getElementById('sociosContainer');
     const addSocioBtn = document.getElementById('addSocioBtn');
 
@@ -988,9 +1038,10 @@
     let formData = {};
     let sociosCount = 0;
     let uploadedDocuments = {};
+    let submissionId = null;
 
     // ===== INICIALIZAÇÃO =====
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function() {
         console.log('Formulário inicializado');
         setupEventListeners();
         setupConditionalFields();
@@ -1003,36 +1054,35 @@
         
         form.addEventListener('submit', handleFormSubmit);
         modalClose.addEventListener('click', closeModal);
-        shareModal.addEventListener('click', (e) => {
+        shareModal.addEventListener('click', function(e) {
             if (e.target === shareModal) closeModal();
         });
         shareWhatsapp.addEventListener('click', handleShareWhatsapp);
-        downloadPDF.addEventListener('click', handleDownloadPDF);
         addSocioBtn.addEventListener('click', addSocio);
 
         // Campos condicionais
         const alterarNomeRadios = document.querySelectorAll('input[name="alterarNome"]');
-        alterarNomeRadios.forEach(radio => {
+        alterarNomeRadios.forEach(function(radio) {
             radio.addEventListener('change', toggleNovasOpcoes);
         });
 
         const alterarFantasiaRadios = document.querySelectorAll('input[name="alterarFantasia"]');
-        alterarFantasiaRadios.forEach(radio => {
+        alterarFantasiaRadios.forEach(function(radio) {
             radio.addEventListener('change', toggleNovoFantasia);
         });
 
         const alterarCapitalRadios = document.querySelectorAll('input[name="alterarCapital"]');
-        alterarCapitalRadios.forEach(radio => {
+        alterarCapitalRadios.forEach(function(radio) {
             radio.addEventListener('change', toggleNovoCapital);
         });
 
         const alterarAtividadesRadios = document.querySelectorAll('input[name="alterarAtividades"]');
-        alterarAtividadesRadios.forEach(radio => {
+        alterarAtividadesRadios.forEach(function(radio) {
             radio.addEventListener('change', toggleNovasAtividades);
         });
 
         const alterarDadosRadios = document.querySelectorAll('input[name="alterardados"]');
-        alterarDadosRadios.forEach(radio => {
+        alterarDadosRadios.forEach(function(radio) {
             radio.addEventListener('change', toggleNovosDados);
         });
 
@@ -1056,10 +1106,10 @@
         
         if (value === 'sim') {
             element.classList.remove('hidden');
-            inputs.forEach(input => input.disabled = false);
+            inputs.forEach(function(input) { input.disabled = false; });
         } else {
             element.classList.add('hidden');
-            inputs.forEach(input => input.disabled = true);
+            inputs.forEach(function(input) { input.disabled = true; });
         }
     }
 
@@ -1098,10 +1148,10 @@
         
         if (value === 'sim') {
             element.classList.remove('hidden');
-            inputs.forEach(input => input.disabled = false);
+            inputs.forEach(function(input) { input.disabled = false; });
         } else {
             element.classList.add('hidden');
-            inputs.forEach(input => input.disabled = true);
+            inputs.forEach(function(input) { input.disabled = true; });
         }
     }
 
@@ -1112,16 +1162,16 @@
         
         if (value === 'sim') {
             element.classList.remove('hidden');
-            inputs.forEach(input => input.disabled = false);
+            inputs.forEach(function(input) { input.disabled = false; });
         } else {
             element.classList.add('hidden');
-            inputs.forEach(input => input.disabled = true);
+            inputs.forEach(function(input) { input.disabled = true; });
         }
     }
 
     function toggleRegimePartilha(socioIndex) {
-        const estadoCivilSelect = document.querySelector(`select[name="socio${socioIndex}EstadoCivil"]`);
-        const element = document.getElementById(`socio${socioIndex}Regime`);
+        const estadoCivilSelect = document.querySelector('select[name="socio' + socioIndex + 'EstadoCivil"]');
+        const element = document.getElementById('socio' + socioIndex + 'Regime');
         
         if (!element) return;
         
@@ -1146,121 +1196,37 @@
         sociosCount++;
         const socioCard = document.createElement('div');
         socioCard.className = 'socio-card';
-        socioCard.id = `socio${sociosCount}`;
+        socioCard.id = 'socio' + sociosCount;
         
         let removeButton = '';
         if (sociosCount > 1) {
-            removeButton = `<button type="button" class="btn-remove-socio" onclick="removeSocio(${sociosCount})">REMOVER</button>`;
+            removeButton = '<button type="button" class="btn-remove-socio" onclick="removeSocio(' + sociosCount + ')">REMOVER</button>';
         }
 
-        socioCard.innerHTML = `
-            <div class="socio-card-header">
-                <h3 class="socio-title">SÓCIO #${sociosCount}</h3>
-                ${removeButton}
-            </div>
-            
-            <div class="form-group">
-                <label>Administrador?</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="socio${sociosCount}Admin" value="sim" ${sociosCount === 1 ? 'checked' : ''} required> Sim</label>
-                    <label><input type="radio" name="socio${sociosCount}Admin" value="nao"> Não</label>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label><input type="checkbox" name="socio${sociosCount}CNPJ" ${sociosCount === 1 ? 'checked' : ''}> Responsável pelo CNPJ</label>
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Nome">Nome Completo ${sociosCount === 1 ? '*' : ''}</label>
-                <input type="text" id="socio${sociosCount}Nome" name="socio${sociosCount}Nome" placeholder="Digite o nome completo" ${sociosCount === 1 ? 'required' : ''}>
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}EstadoCivil">Estado Civil</label>
-                <select id="socio${sociosCount}EstadoCivil" name="socio${sociosCount}EstadoCivil" onchange="toggleRegimePartilha(${sociosCount})">
-                    <option value="">Selecione...</option>
-                    <option value="solteiro">Solteiro(a)</option>
-                    <option value="casado">Casado(a)</option>
-                    <option value="divorciado">Divorciado(a)</option>
-                    <option value="viuvo">Viúvo(a)</option>
-                    <option value="uniao_estavel">União Estável</option>
-                </select>
-            </div>
-
-            <div id="socio${sociosCount}Regime" class="form-group hidden">
-                <label for="socio${sociosCount}RegimePartilha">Regime de Partilha de Bens</label>
-                <input type="text" id="socio${sociosCount}RegimePartilha" name="socio${sociosCount}RegimePartilha" placeholder="Ex: Comunhão Universal de Bens" disabled>
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Naturalidade">Naturalidade</label>
-                <input type="text" id="socio${sociosCount}Naturalidade" name="socio${sociosCount}Naturalidade" placeholder="Cidade/Estado">
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Profissao">Profissão</label>
-                <input type="text" id="socio${sociosCount}Profissao" name="socio${sociosCount}Profissao" placeholder="Digite a profissão">
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Endereco">Endereço Residencial</label>
-                <input type="text" id="socio${sociosCount}Endereco" name="socio${sociosCount}Endereco" placeholder="Rua, número, complemento">
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="socio${sociosCount}CEP">CEP</label>
-                    <input type="text" id="socio${sociosCount}CEP" name="socio${sociosCount}CEP" placeholder="00000-000" maxlength="9">
-                </div>
-                <div class="form-group">
-                    <label for="socio${sociosCount}Celular">Celular</label>
-                    <input type="tel" id="socio${sociosCount}Celular" name="socio${sociosCount}Celular" placeholder="(61) 99999-9999">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Email">E-mail</label>
-                <input type="email" id="socio${sociosCount}Email" name="socio${sociosCount}Email" placeholder="email@example.com">
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Participacao">Participação Societária (%)</label>
-                <input type="number" id="socio${sociosCount}Participacao" name="socio${sociosCount}Participacao" placeholder="0" min="0" max="100" step="0.01">
-            </div>
-
-            <div class="form-group">
-                <label for="socio${sociosCount}Documento">Upload de Documento de Identificação (RG, CPF ou CNH) *</label>
-                <input type="file" id="socio${sociosCount}Documento" name="socio${sociosCount}Documento" accept=".pdf,.jpg,.jpeg,.png" required>
-                <small style="color: var(--gray-500); display: block; margin-top: 6px;">Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
-                <div id="socio${sociosCount}DocumentoPreview" style="margin-top: 10px;"></div>
-            </div>
-
-            <div class="info-box">
-                <strong>Importante:</strong> Enviar uma foto do RG e CPF ou CNH por e-mail juntamente com esse formulário.
-            </div>
-        `;
+        socioCard.innerHTML = '<div class="socio-card-header"><h3 class="socio-title">SÓCIO #' + sociosCount + '</h3>' + removeButton + '</div><div class="form-group"><label>Administrador?</label><div class="radio-group"><label><input type="radio" name="socio' + sociosCount + 'Admin" value="sim" ' + (sociosCount === 1 ? 'checked' : '') + ' required> Sim</label><label><input type="radio" name="socio' + sociosCount + 'Admin" value="nao"> Não</label></div></div><div class="form-group"><label><input type="checkbox" name="socio' + sociosCount + 'CNPJ" ' + (sociosCount === 1 ? 'checked' : '') + '> Responsável pelo CNPJ</label></div><div class="form-group"><label for="socio' + sociosCount + 'Nome">Nome Completo ' + (sociosCount === 1 ? '*' : '') + '</label><input type="text" id="socio' + sociosCount + 'Nome" name="socio' + sociosCount + 'Nome" placeholder="Digite o nome completo" ' + (sociosCount === 1 ? 'required' : '') + '></div><div class="form-group"><label for="socio' + sociosCount + 'EstadoCivil">Estado Civil</label><select id="socio' + sociosCount + 'EstadoCivil" name="socio' + sociosCount + 'EstadoCivil" onchange="toggleRegimePartilha(' + sociosCount + ')"><option value="">Selecione...</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option><option value="uniao_estavel">União Estável</option></select></div><div id="socio' + sociosCount + 'Regime" class="form-group hidden"><label for="socio' + sociosCount + 'RegimePartilha">Regime de Partilha de Bens</label><input type="text" id="socio' + sociosCount + 'RegimePartilha" name="socio' + sociosCount + 'RegimePartilha" placeholder="Ex: Comunhão Universal de Bens" disabled></div><div class="form-group"><label for="socio' + sociosCount + 'Naturalidade">Naturalidade</label><input type="text" id="socio' + sociosCount + 'Naturalidade" name="socio' + sociosCount + 'Naturalidade" placeholder="Cidade/Estado"></div><div class="form-group"><label for="socio' + sociosCount + 'Profissao">Profissão</label><input type="text" id="socio' + sociosCount + 'Profissao" name="socio' + sociosCount + 'Profissao" placeholder="Digite a profissão"></div><div class="form-group"><label for="socio' + sociosCount + 'Endereco">Endereço Residencial</label><input type="text" id="socio' + sociosCount + 'Endereco" name="socio' + sociosCount + 'Endereco" placeholder="Rua, número, complemento"></div><div class="form-row"><div class="form-group"><label for="socio' + sociosCount + 'CEP">CEP</label><input type="text" id="socio' + sociosCount + 'CEP" name="socio' + sociosCount + 'CEP" placeholder="00000-000" maxlength="9"></div><div class="form-group"><label for="socio' + sociosCount + 'Celular">Celular</label><input type="tel" id="socio' + sociosCount + 'Celular" name="socio' + sociosCount + 'Celular" placeholder="(61) 99999-9999"></div></div><div class="form-group"><label for="socio' + sociosCount + 'Email">E-mail</label><input type="email" id="socio' + sociosCount + 'Email" name="socio' + sociosCount + 'Email" placeholder="email@example.com"></div><div class="form-group"><label for="socio' + sociosCount + 'Participacao">Participação Societária (%)</label><input type="number" id="socio' + sociosCount + 'Participacao" name="socio' + sociosCount + 'Participacao" placeholder="0" min="0" max="100" step="0.01"></div><div class="form-group"><label for="socio' + sociosCount + 'Documento">Upload de Documento de Identificação (RG, CPF ou CNH) *</label><input type="file" id="socio' + sociosCount + 'Documento" name="socio' + sociosCount + 'Documento" accept=".pdf,.jpg,.jpeg,.png" required><small style="color: var(--gray-500); display: block; margin-top: 6px;">Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small><div id="socio' + sociosCount + 'DocumentoPreview" style="margin-top: 10px;"></div></div><div class="info-box"><strong>Importante:</strong> Enviar uma foto do RG e CPF ou CNH por e-mail juntamente com esse formulário.</div>';
 
         sociosContainer.appendChild(socioCard);
 
         // Adicionar listener para preview do documento
-        const fileInput = document.getElementById(`socio${sociosCount}Documento`);
-        fileInput.addEventListener('change', (e) => handleDocumentUpload(e, sociosCount));
+        const fileInput = document.getElementById('socio' + sociosCount + 'Documento');
+        fileInput.addEventListener('change', function(e) { 
+            handleDocumentUpload(e, sociosCount); 
+        });
     }
 
     function removeSocio(index) {
-        const socioCard = document.getElementById(`socio${index}`);
+        const socioCard = document.getElementById('socio' + index);
         if (socioCard) {
             socioCard.remove();
-            if (uploadedDocuments[`socio${index}`]) {
-                delete uploadedDocuments[`socio${index}`];
+            if (uploadedDocuments['socio' + index]) {
+                delete uploadedDocuments['socio' + index];
             }
         }
     }
 
     function handleDocumentUpload(event, socioIndex) {
         const file = event.target.files[0];
-        const previewDiv = document.getElementById(`socio${socioIndex}DocumentoPreview`);
+        const previewDiv = document.getElementById('socio' + socioIndex + 'DocumentoPreview');
         
         if (!file) return;
 
@@ -1282,31 +1248,15 @@
         }
 
         // Armazenar arquivo
-        uploadedDocuments[`socio${socioIndex}`] = file;
+        uploadedDocuments['socio' + socioIndex] = file;
 
         // Mostrar preview
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = function(e) {
             if (file.type === 'application/pdf') {
-                previewDiv.innerHTML = `
-                    <div class="document-preview">
-                        <span style="font-size: 24px;">📄</span>
-                        <div class="document-info">
-                            <strong>${file.name}</strong>
-                            <small>${(file.size / 1024).toFixed(2)} KB</small>
-                        </div>
-                    </div>
-                `;
+                previewDiv.innerHTML = '<div class="document-preview"><span style="font-size: 24px;">📄</span><div class="document-info"><strong>' + file.name + '</strong><small>' + (file.size / 1024).toFixed(2) + ' KB</small></div></div>';
             } else {
-                previewDiv.innerHTML = `
-                    <div class="document-preview" style="flex-direction: column;">
-                        <img src="${e.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
-                        <div class="document-info">
-                            <strong>${file.name}</strong>
-                            <small>${(file.size / 1024).toFixed(2)} KB</small>
-                        </div>
-                    </div>
-                `;
+                previewDiv.innerHTML = '<div class="document-preview" style="flex-direction: column;"><img src="' + e.target.result + '" style="max-width: 200px; max-height: 150px; border-radius: 4px;"><div class="document-info"><strong>' + file.name + '</strong><small>' + (file.size / 1024).toFixed(2) + ' KB</small></div></div>';
             }
         };
         reader.readAsDataURL(file);
@@ -1317,7 +1267,8 @@
         const formElements = form.elements;
         formData = {};
         
-        for (let element of formElements) {
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
             if (element.type === 'checkbox') {
                 formData[element.name] = element.checked;
             } else if (element.type === 'radio') {
@@ -1343,21 +1294,22 @@
             'consentimentoLGPD'
         ];
 
-        for (let field of requiredFields) {
+        for (let i = 0; i < requiredFields.length; i++) {
+            const field = requiredFields[i];
             const element = form.elements[field];
             if (!element) {
-                alert(`Campo obrigatório não encontrado: ${field}`);
+                alert('Campo obrigatório não encontrado: ' + field);
                 return false;
             }
 
             if (element.type === 'checkbox' && !element.checked) {
-                alert(`Por favor, aceite o termo: ${element.labels[0]?.textContent || field}`);
+                alert('Por favor, aceite o termo: ' + (element.labels[0] ? element.labels[0].textContent : field));
                 element.focus();
                 return false;
             }
 
             if (element.type !== 'checkbox' && !element.value) {
-                alert(`Por favor, preencha o campo obrigatório: ${element.labels[0]?.textContent || field}`);
+                alert('Por favor, preencha o campo obrigatório: ' + (element.labels[0] ? element.labels[0].textContent : field));
                 element.focus();
                 return false;
             }
@@ -1367,18 +1319,18 @@
         const socio1Nome = form.elements['socio1Nome'];
         if (!socio1Nome || !socio1Nome.value) {
             alert('Por favor, preencha os dados do primeiro sócio.');
-            socio1Nome?.focus();
+            if (socio1Nome) socio1Nome.focus();
             return false;
         }
 
         // Validar documentos dos sócios
         for (let i = 1; i <= sociosCount; i++) {
-            const nomeField = form.elements[`socio${i}Nome`];
+            const nomeField = form.elements['socio' + i + 'Nome'];
             if (nomeField && nomeField.value) {
-                const docInput = document.getElementById(`socio${i}Documento`);
+                const docInput = document.getElementById('socio' + i + 'Documento');
                 if (!docInput || !docInput.files || docInput.files.length === 0) {
-                    alert(`Por favor, faça upload do documento de identificação do Sócio #${i}`);
-                    docInput?.focus();
+                    alert('Por favor, faça upload do documento de identificação do Sócio #' + i);
+                    if (docInput) docInput.focus();
                     return false;
                 }
             }
@@ -1396,171 +1348,144 @@
         }
 
         collectFormData();
-        generatePDF().then(() => {
+        
+        saveFormToSupabase().then(function() {
             showModal();
+        }).catch(function(error) {
+            console.error('Erro ao salvar formulário:', error);
+            alert('Erro ao salvar formulário: ' + error.message);
         });
     }
 
-    // ===== GERAÇÃO DE PDF =====
-    async function generatePDF() {
-        return new Promise((resolve) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
+    // ===== SALVAR NO SUPABASE =====
+    async function saveFormToSupabase() {
+        try {
+            const supabase = getSupabaseClient();
 
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 15;
-            const contentWidth = pageWidth - 2 * margin;
-            let yPosition = margin;
-
-            // Cores elegantes
-            const primaryColor = [46, 80, 144];
-            const grayLight = [240, 241, 243];
-            const textColor = [45, 46, 49];
-
-            // CABEÇALHO
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, 0, pageWidth, 40, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('FORMULÁRIO DE ALTERAÇÃO DE EMPRESA', pageWidth / 2, 15, { align: 'center' });
-            
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text('SCONT Soluções Contábeis', pageWidth / 2, 25, { align: 'center' });
-            doc.text('Junta Comercial do Distrito Federal', pageWidth / 2, 32, { align: 'center' });
-            yPosition = 50;
-
-            // Função para adicionar seção
-            const addSection = (title) => {
-                if (yPosition > pageHeight - 40) {
-                    doc.addPage();
-                    yPosition = margin;
-                }
-                doc.setFillColor(...primaryColor);
-                doc.rect(margin - 2, yPosition - 5, contentWidth + 4, 8, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                doc.text(title, margin + 2, yPosition + 1);
-                yPosition += 12;
+            // Preparar dados do formulário
+            const formularioData = {
+                nome_empresa: formData.nomeEmpresa,
+                alterar_nome: formData.alterarNome === 'sim',
+                nome_opcao_1: formData.nomeOpcao1 || null,
+                nome_opcao_2: formData.nomeOpcao2 || null,
+                nome_opcao_3: formData.nomeOpcao3 || null,
+                alterar_fantasia: formData.alterarFantasia === 'sim',
+                novo_nome_fantasia: formData.novoNomeFantasia || null,
+                alterar_capital: formData.alterarCapital === 'sim',
+                novo_capital: formData.capitalNovo ? parseFloat(formData.capitalNovo) : null,
+                alterar_dados: formData.alterardados === 'sim',
+                novo_endereco: formData.enderecoNovo || null,
+                cep_novo: formData.cepNovo || null,
+                iptu_novo: formData.iptuNovo || null,
+                metragem_nova: formData.metragemNova ? parseFloat(formData.metragemNova) : null,
+                horario_novo: formData.horarioNovo || null,
+                email_comercial_novo: formData.emailComercialNovo || null,
+                telefone_comercial_novo: formData.telefoneComercialNovo || null,
+                forma_atuacao: formData.formaAtuacao || null,
+                alterar_atividades: formData.alterarAtividades === 'sim',
+                atividade_principal_nova: formData.atividadePrincipalNova || null,
+                atividades_secundarias_nova: formData.atividadesSecundariasNova || null,
+                data_preenchimento: formData.dataPreenchimento,
+                hora_preenchimento: formData.horaPreenchimento,
+                status: 'recebido'
             };
 
-            // Função para adicionar linha de dados
-            const addDataLine = (label, value) => {
-                if (yPosition > pageHeight - 15) {
-                    doc.addPage();
-                    yPosition = margin;
-                }
-                doc.setTextColor(...textColor);
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'bold');
-                doc.text(label, margin, yPosition);
-                doc.setFont('helvetica', 'normal');
-                const wrappedText = doc.splitTextToSize(value || '-', contentWidth - 60);
-                doc.text(wrappedText, margin + 60, yPosition);
-                yPosition += Math.max(5, wrappedText.length * 4) + 2;
-            };
+            // Inserir formulário
+            const { data: formulario, error: formularioError } = await supabase
+                .from('formularios')
+                .insert([formularioData])
+                .select();
 
-            // INFORMAÇÕES DA EMPRESA
-            addSection('INFORMAÇÕES DA EMPRESA');
-            addDataLine('Nome da Empresa:', formData.nomeEmpresa);
-            addDataLine('Alterar Nome:', formData.alterarNome === 'sim' ? 'Sim' : 'Não');
-            if (formData.alterarNome === 'sim') {
-                addDataLine('1ª Opção:', formData.nomeOpcao1 || '-');
-                addDataLine('2ª Opção:', formData.nomeOpcao2 || '-');
-                addDataLine('3ª Opção:', formData.nomeOpcao3 || '-');
-            }
-            addDataLine('Alterar Fantasia:', formData.alterarFantasia === 'sim' ? 'Sim' : 'Não');
-            if (formData.alterarFantasia === 'sim') {
-                addDataLine('Novo Nome Fantasia:', formData.novoNomeFantasia || '-');
-            }
-            addDataLine('Alterar Capital:', formData.alterarCapital === 'sim' ? 'Sim' : 'Não');
-            if (formData.alterarCapital === 'sim') {
-                addDataLine('Novo Capital Social:', 'R$ ' + parseFloat(formData.capitalNovo || 0).toFixed(2));
-            }
-            yPosition += 3;
+            if (formularioError) throw formularioError;
 
-            // SEDE DO ESTABELECIMENTO
-            addSection('SEDE DO ESTABELECIMENTO');
-            addDataLine('Alterar Dados:', formData.alterardados === 'sim' ? 'Sim' : 'Não');
-            if (formData.alterardados === 'sim') {
-                addDataLine('Novo Endereço:', formData.enderecoNovo || '-');
-                addDataLine('CEP:', formData.cepNovo || '-');
-                addDataLine('IPTU:', formData.iptuNovo || '-');
-                addDataLine('Metragem:', formData.metragemNova || '-');
-                addDataLine('Horário:', formData.horarioNovo || '-');
-                addDataLine('E-mail:', formData.emailComercialNovo || '-');
-                addDataLine('Telefone:', formData.telefoneComercialNovo || '-');
-            }
-            yPosition += 3;
+            submissionId = formulario[0].id;
+            console.log('Formulário salvo com ID:', submissionId);
 
-            // ATIVIDADES
-            addSection('ATIVIDADES');
-            addDataLine('Alterar Atividades:', formData.alterarAtividades === 'sim' ? 'Sim' : 'Não');
-            if (formData.alterarAtividades === 'sim') {
-                addDataLine('Atividade Principal:', formData.atividadePrincipalNova || '-');
-                const atividades = formData.atividadesSecundariasNova ? formData.atividadesSecundariasNova.replace(/\n/g, ', ') : '-';
-                addDataLine('Atividades Secundárias:', atividades);
-            }
-            yPosition += 3;
-
-            // DADOS DOS SÓCIOS
-            addSection('DADOS DOS SÓCIOS');
+            // Salvar sócios
             for (let i = 1; i <= sociosCount; i++) {
-                const nomeField = form.elements[`socio${i}Nome`];
+                const nomeField = form.elements['socio' + i + 'Nome'];
                 if (nomeField && nomeField.value) {
-                    if (yPosition > pageHeight - 50) {
-                        doc.addPage();
-                        yPosition = margin;
-                    }
-                    
-                    doc.setFillColor(...grayLight);
-                    doc.rect(margin, yPosition - 3, contentWidth, 6, 'F');
-                    doc.setTextColor(...primaryColor);
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('SOCIO #' + i, margin + 2, yPosition + 1);
-                    yPosition += 8;
+                    const socioData = {
+                        formulario_id: submissionId,
+                        numero_socio: i,
+                        nome: form.elements['socio' + i + 'Nome'].value,
+                        administrador: form.elements['socio' + i + 'Admin'].value === 'sim',
+                        responsavel_cnpj: form.elements['socio' + i + 'CNPJ'].checked,
+                        estado_civil: form.elements['socio' + i + 'EstadoCivil'].value || null,
+                        regime_partilha: form.elements['socio' + i + 'RegimePartilha'].value || null,
+                        naturalidade: form.elements['socio' + i + 'Naturalidade'].value || null,
+                        profissao: form.elements['socio' + i + 'Profissao'].value || null,
+                        endereco: form.elements['socio' + i + 'Endereco'].value || null,
+                        cep: form.elements['socio' + i + 'CEP'].value || null,
+                        celular: form.elements['socio' + i + 'Celular'].value || null,
+                        email: form.elements['socio' + i + 'Email'].value || null,
+                        participacao: form.elements['socio' + i + 'Participacao'].value ? parseFloat(form.elements['socio' + i + 'Participacao'].value) : null
+                    };
 
-                    addDataLine('Nome:', form.elements[`socio${i}Nome`].value);
-                    addDataLine('Administrador:', form.elements[`socio${i}Admin`].value === 'sim' ? 'Sim' : 'Não');
-                    addDataLine('Responsável CNPJ:', form.elements[`socio${i}CNPJ`].checked ? 'Sim' : 'Não');
-                    addDataLine('Estado Civil:', form.elements[`socio${i}EstadoCivil`].value || '-');
-                    addDataLine('Profissão:', form.elements[`socio${i}Profissao`].value || '-');
-                    addDataLine('E-mail:', form.elements[`socio${i}Email`].value || '-');
-                    addDataLine('Celular:', form.elements[`socio${i}Celular`].value || '-');
-                    addDataLine('Participação (%):', form.elements[`socio${i}Participacao`].value || '0');
-                    addDataLine('Documento:', uploadedDocuments[`socio${i}`] ? 'Anexado' : 'Não anexado');
-                    yPosition += 3;
+                    const { data: socio, error: socioError } = await supabase
+                        .from('socios')
+                        .insert([socioData])
+                        .select();
+
+                    if (socioError) throw socioError;
+
+                    // Fazer upload do documento
+                    const file = uploadedDocuments['socio' + i];
+                    if (file) {
+                        await uploadDocumento(file, submissionId, socio[0].id);
+                    }
                 }
             }
 
-       
+            console.log('Todos os dados foram salvos com sucesso!');
 
-            // RODAPÉ
-            if (yPosition > pageHeight - 20) {
-                doc.addPage();
-                yPosition = margin;
-            }
+        } catch (error) {
+            console.error('Erro ao salvar no Supabase:', error);
+            throw error;
+        }
+    }
 
-            doc.setTextColor(64, 67, 71);
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Preenchido em: ' + formData.dataPreenchimento + ' às ' + formData.horaPreenchimento, margin, pageHeight - 10);
-            doc.text('SCONT Soluções Contábeis LTDA', margin, pageHeight - 5);
+    // ===== UPLOAD DE DOCUMENTOS =====
+    async function uploadDocumento(file, formularioId, socioId) {
+        try {
+            const supabase = getSupabaseClient();
 
-            // Salvar PDF
-            doc.save('Alteracao_Empresa_' + (formData.nomeEmpresa || 'Formulario') + '.pdf');
+            // Gerar nome único para o arquivo
+            const timestamp = Date.now();
+            const fileName = formularioId + '/' + socioId + '/' + timestamp + '_' + file.name;
 
-            resolve();
-        });
+            // Fazer upload para Supabase Storage
+            const { data, error } = await supabase.storage
+                .from('documentos')
+                .upload(fileName, file);
+
+            if (error) throw error;
+
+            // Obter URL pública
+            const { data: publicUrl } = supabase.storage
+                .from('documentos')
+                .getPublicUrl(fileName);
+
+            // Salvar referência no banco de dados
+            const { error: uploadError } = await supabase
+                .from('uploads')
+                .insert([{
+                    formulario_id: formularioId,
+                    socio_id: socioId,
+                    arquivo_nome: file.name,
+                    arquivo_tipo: file.type,
+                    arquivo_tamanho: file.size,
+                    arquivo_url: publicUrl.publicUrl
+                }]);
+
+            if (uploadError) throw uploadError;
+
+            console.log('Documento enviado:', fileName);
+
+        } catch (error) {
+            console.error('Erro ao fazer upload do documento:', error);
+            throw error;
+        }
     }
 
     // ===== COMPARTILHAMENTO =====
@@ -1573,15 +1498,48 @@
     }
 
     async function handleShareWhatsapp() {
-        const message = 'Olá! Segue o formulário de alteração de empresa preenchido.\n\nEmpresa: ' + formData.nomeEmpresa + '\nData: ' + formData.dataPreenchimento + '\n\nAtenciosamente,';
-        
-        const whatsappUrl = 'https://wa.me/' + CONFIG.WHATSAPP_NUMERO.replace(/\D/g, '') + '?text=' + encodeURIComponent(message);
-        window.open(whatsappUrl, '_blank');
-        closeModal();
-    }
+        const btn = document.getElementById('shareWhatsapp');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="icon">⏳</span><span>Enviando...</span>';
+        btn.disabled = true;
 
-    async function handleDownloadPDF() {
-        closeModal();
+        try {
+            // Construir mensagem
+            let mensagem = '*✅ FORMULÁRIO ENVIADO COM SUCESSO*\n\n';
+            mensagem += '*INFORMAÇÕES DA EMPRESA*\n';
+            mensagem += 'Nome: ' + formData.nomeEmpresa + '\n';
+            mensagem += 'ID: ' + submissionId + '\n\n';
+            
+            mensagem += '*DATA E HORA*\n';
+            mensagem += 'Preenchido em: ' + formData.dataPreenchimento + ' às ' + formData.horaPreenchimento + '\n\n';
+            
+            mensagem += '✅ Seus dados foram salvos em nossa base de dados.\n';
+            mensagem += '📋 Sócios registrados: ' + sociosCount + '\n';
+            mensagem += '📎 Documentos anexados: Sim\n\n';
+            mensagem += 'Entraremos em contato em breve para prosseguir com o processo.\n\n';
+            mensagem += '_SCONT Soluções Contábeis_';
+
+            // Abrir WhatsApp
+            const whatsappUrl = 'https://wa.me/' + CONFIG.WHATSAPP_NUMERO.replace(/\D/g, '') + '?text=' + encodeURIComponent(mensagem);
+            window.open(whatsappUrl, '_blank');
+
+            // Fechar modal após 1 segundo
+            setTimeout(function() {
+                closeModal();
+                form.reset();
+                sociosContainer.innerHTML = '';
+                sociosCount = 0;
+                uploadedDocuments = {};
+                addInitialSocio();
+            }, 1000);
+
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao enviar mensagem: ' + error.message);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 </script>
 </body>
