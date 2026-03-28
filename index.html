@@ -1012,7 +1012,8 @@ body {
     <script src="script.js"></script>
 
   <script>
-       // ===== CONFIGURAÇÕES GLOBAIS =====
+    
+// ===== CONFIGURAÇÕES GLOBAIS =====
 const CONFIG = {
     WHATSAPP_NUMERO: '+5561993543223',
     EMPRESA_NOME: 'SCONT SOLUÇÕES CONTÁBEIS LTDA'
@@ -1030,6 +1031,7 @@ const addSocioBtn = document.getElementById('addSocioBtn');
 // ===== DADOS DO FORMULÁRIO =====
 let formData = {};
 let sociosCount = 0;
+let uploadedDocuments = {}; // Armazena documentos dos sócios
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -1045,12 +1047,11 @@ function setupEventListeners() {
     shareModal.addEventListener('click', (e) => {
         if (e.target === shareModal) closeModal();
     });
-
     shareWhatsapp.addEventListener('click', handleShareWhatsapp);
     downloadPDF.addEventListener('click', handleDownloadPDF);
     addSocioBtn.addEventListener('click', addSocio);
 
-    // Campos condicionais
+    // Campos condicionais - CORRIGIDO
     document.querySelectorAll('input[name="alterarNome"]').forEach(radio => {
         radio.addEventListener('change', toggleNovasOpcoes);
     });
@@ -1066,6 +1067,11 @@ function setupEventListeners() {
     document.querySelectorAll('input[name="alterarAtividades"]').forEach(radio => {
         radio.addEventListener('change', toggleNovasAtividades);
     });
+
+    // NOVO: Listener para toggle de dados do estabelecimento
+    document.querySelectorAll('input[name="alterardados"]').forEach(radio => {
+        radio.addEventListener('change', toggleNovosDados);
+    });
 }
 
 // ===== CAMPOS CONDICIONAIS =====
@@ -1074,6 +1080,7 @@ function setupConditionalFields() {
     toggleNovoFantasia();
     toggleNovoCapital();
     toggleNovasAtividades();
+    toggleNovosDados(); // NOVO
 }
 
 function toggleNovasOpcoes() {
@@ -1132,17 +1139,36 @@ function toggleNovasAtividades() {
     }
 }
 
+// NOVO: Toggle para dados do estabelecimento - CORRIGIDO
+function toggleNovosDados() {
+    const value = document.querySelector('input[name="alterardados"]:checked').value;
+    const element = document.getElementById('novosdados');
+    const inputs = element.querySelectorAll('input, textarea');
+    
+    if (value === 'sim') {
+        element.classList.remove('hidden');
+        inputs.forEach(input => input.disabled = false);
+    } else {
+        element.classList.add('hidden');
+        inputs.forEach(input => input.disabled = true);
+    }
+}
+
 function toggleRegimePartilha(socioIndex) {
-    const estadoCivil = document.querySelector(`select[name="socio${socioIndex}EstadoCivil"]`).value;
+    const estadoCivilSelect = document.querySelector(`select[name="socio${socioIndex}EstadoCivil"]`);
     const element = document.getElementById(`socio${socioIndex}Regime`);
+    
+    if (!element) return;
+    
     const input = element.querySelector('input');
+    const estadoCivil = estadoCivilSelect ? estadoCivilSelect.value : '';
     
     if (estadoCivil === 'casado') {
         element.classList.remove('hidden');
-        input.disabled = false;
+        if (input) input.disabled = false;
     } else {
         element.classList.add('hidden');
-        input.disabled = true;
+        if (input) input.disabled = true;
     }
 }
 
@@ -1232,26 +1258,97 @@ function addSocio() {
             <input type="number" id="socio${sociosCount}Participacao" name="socio${sociosCount}Participacao" placeholder="0" min="0" max="100" step="0.01">
         </div>
 
+        <div class="form-group">
+            <label for="socio${sociosCount}Documento">Upload de Documento de Identificação (RG, CPF ou CNH) *</label>
+            <input type="file" id="socio${sociosCount}Documento" name="socio${sociosCount}Documento" accept=".pdf,.jpg,.jpeg,.png" required>
+            <small style="color: var(--gray-500); display: block; margin-top: 6px;">Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
+            <div id="socio${sociosCount}DocumentoPreview" style="margin-top: 10px;"></div>
+        </div>
+
         <div class="info-box">
             <strong>Importante:</strong> Enviar uma foto do RG e CPF ou CNH por e-mail juntamente com esse formulário.
         </div>
     `;
 
     sociosContainer.appendChild(socioCard);
+
+    // Adicionar listener para preview do documento
+    const fileInput = document.getElementById(`socio${sociosCount}Documento`);
+    fileInput.addEventListener('change', (e) => handleDocumentUpload(e, sociosCount));
 }
 
 function removeSocio(index) {
     const socioCard = document.getElementById(`socio${index}`);
     if (socioCard) {
         socioCard.remove();
+        // Remover documento armazenado
+        if (uploadedDocuments[`socio${index}`]) {
+            delete uploadedDocuments[`socio${index}`];
+        }
     }
+}
+
+// NOVO: Função para lidar com upload de documentos
+function handleDocumentUpload(event, socioIndex) {
+    const file = event.target.files[0];
+    const previewDiv = document.getElementById(`socio${socioIndex}DocumentoPreview`);
+    
+    if (!file) return;
+
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Arquivo muito grande! Máximo 5MB.');
+        event.target.value = '';
+        previewDiv.innerHTML = '';
+        return;
+    }
+
+    // Validar tipo
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Tipo de arquivo não permitido. Use PDF, JPG ou PNG.');
+        event.target.value = '';
+        previewDiv.innerHTML = '';
+        return;
+    }
+
+    // Armazenar arquivo
+    uploadedDocuments[`socio${socioIndex}`] = file;
+
+    // Mostrar preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (file.type === 'application/pdf') {
+            previewDiv.innerHTML = `
+                <div style="padding: 10px; background: var(--gray-100); border-radius: 5px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">📄</span>
+                    <div>
+                        <strong>${file.name}</strong>
+                        <br>
+                        <small style="color: var(--gray-500);">${(file.size / 1024).toFixed(2)} KB</small>
+                    </div>
+                </div>
+            `;
+        } else {
+            previewDiv.innerHTML = `
+                <div style="padding: 10px; background: var(--gray-100); border-radius: 5px;">
+                    <img src="${e.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 8px;">
+                    <br>
+                    <strong>${file.name}</strong>
+                    <br>
+                    <small style="color: var(--gray-500);">${(file.size / 1024).toFixed(2)} KB</small>
+                </div>
+            `;
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
 // ===== COLETA DE DADOS =====
 function collectFormData() {
     const formElements = form.elements;
     formData = {};
-
+    
     for (let element of formElements) {
         if (element.type === 'checkbox') {
             formData[element.name] = element.checked;
@@ -1259,7 +1356,7 @@ function collectFormData() {
             if (element.checked) {
                 formData[element.name] = element.value;
             }
-        } else if (element.name && !element.disabled) {
+        } else if (element.name && !element.disabled && element.type !== 'file') {
             formData[element.name] = element.value;
         }
     }
@@ -1275,21 +1372,36 @@ function collectFormData() {
 function validateForm() {
     const requiredFields = [
         'nomeEmpresa',
-        'capitalAtual',
-        'enderecoAtual',
-        'cepAtual',
-        'atividadePrincipalAtual',
-        'socio1Nome',
-        'socio1Admin',
         'consentimentoLGPD'
     ];
 
     for (let field of requiredFields) {
         const element = form.elements[field];
-        if (!element || !element.value) {
+        if (!element || (element.type === 'checkbox' && !element.checked) || (!element.checked && element.type !== 'checkbox' && !element.value)) {
             alert(`Por favor, preencha o campo obrigatório: ${element?.labels?.[0]?.textContent || field}`);
             element?.focus();
             return false;
+        }
+    }
+
+    // Validar pelo menos um sócio
+    const socio1Nome = form.elements['socio1Nome'];
+    if (!socio1Nome || !socio1Nome.value) {
+        alert('Por favor, preencha os dados do primeiro sócio.');
+        socio1Nome?.focus();
+        return false;
+    }
+
+    // Validar documentos dos sócios
+    for (let i = 1; i <= sociosCount; i++) {
+        const nomeField = form.elements[`socio${i}Nome`];
+        if (nomeField && nomeField.value) {
+            const docInput = document.getElementById(`socio${i}Documento`);
+            if (!docInput || !docInput.files || docInput.files.length === 0) {
+                alert(`Por favor, faça upload do documento de identificação do Sócio #${i}`);
+                docInput?.focus();
+                return false;
+            }
         }
     }
 
@@ -1299,7 +1411,7 @@ function validateForm() {
 // ===== SUBMISSÃO DO FORMULÁRIO =====
 function handleFormSubmit(e) {
     e.preventDefault();
-
+    
     if (!validateForm()) {
         return;
     }
@@ -1346,7 +1458,6 @@ async function generatePDF() {
         doc.setFont('helvetica', 'normal');
         doc.text('SCONT Soluções Contábeis', pageWidth / 2, 25, { align: 'center' });
         doc.text('Junta Comercial do Distrito Federal', pageWidth / 2, 32, { align: 'center' });
-
         yPosition = 50;
 
         // Função para adicionar seção
@@ -1383,8 +1494,17 @@ async function generatePDF() {
         // INFORMAÇÕES DA EMPRESA
         addSection('INFORMAÇÕES DA EMPRESA');
         addDataLine('Nome da Empresa:', formData.nomeEmpresa);
-        addDataLine('Nome Fantasia:', formData.nomeFantasia || '-');
-        addDataLine('Capital Social Atual:', `R$ ${parseFloat(formData.capitalAtual || 0).toFixed(2)}`);
+        addDataLine('Alterar Nome:', formData.alterarNome === 'sim' ? 'Sim' : 'Não');
+        if (formData.alterarNome === 'sim') {
+            addDataLine('1ª Opção:', formData.nomeOpcao1 || '-');
+            addDataLine('2ª Opção:', formData.nomeOpcao2 || '-');
+            addDataLine('3ª Opção:', formData.nomeOpcao3 || '-');
+        }
+        addDataLine('Alterar Fantasia:', formData.alterarFantasia === 'sim' ? 'Sim' : 'Não');
+        if (formData.alterarFantasia === 'sim') {
+            addDataLine('Novo Nome Fantasia:', formData.novoNomeFantasia || '-');
+        }
+        addDataLine('Alterar Capital:', formData.alterarCapital === 'sim' ? 'Sim' : 'Não');
         if (formData.alterarCapital === 'sim') {
             addDataLine('Novo Capital Social:', `R$ ${parseFloat(formData.capitalNovo || 0).toFixed(2)}`);
         }
@@ -1392,20 +1512,24 @@ async function generatePDF() {
 
         // SEDE DO ESTABELECIMENTO
         addSection('SEDE DO ESTABELECIMENTO');
-        addDataLine('Endereço Atual:', formData.enderecoAtual);
-        addDataLine('CEP:', formData.cepAtual);
-        addDataLine('E-mail Comercial:', formData.emailComercialAtual || '-');
-        addDataLine('Telefone Comercial:', formData.telefoneComercialAtual || '-');
-        if (formData.enderecoNovo) {
-            addDataLine('Novo Endereço:', formData.enderecoNovo);
+        addDataLine('Alterar Dados:', formData.alterardados === 'sim' ? 'Sim' : 'Não');
+        if (formData.alterardados === 'sim') {
+            addDataLine('Novo Endereço:', formData.enderecoNovo || '-');
+            addDataLine('CEP:', formData.cepNovo || '-');
+            addDataLine('IPTU:', formData.iptuNovo || '-');
+            addDataLine('Metragem:', formData.metragemNova || '-');
+            addDataLine('Horário:', formData.horarioNovo || '-');
+            addDataLine('E-mail:', formData.emailComercialNovo || '-');
+            addDataLine('Telefone:', formData.telefoneComercialNovo || '-');
         }
         yPosition += 3;
 
         // ATIVIDADES
         addSection('ATIVIDADES');
-        addDataLine('Atividade Principal:', formData.atividadePrincipalAtual);
-        if (formData.atividadesSecundariasAtual) {
-            addDataLine('Atividades Secundárias:', formData.atividadesSecundariasAtual.replace(/\n/g, ', '));
+        addDataLine('Alterar Atividades:', formData.alterarAtividades === 'sim' ? 'Sim' : 'Não');
+        if (formData.alterarAtividades === 'sim') {
+            addDataLine('Atividade Principal:', formData.atividadePrincipalNova || '-');
+            addDataLine('Atividades Secundárias:', formData.atividadesSecundariasNova?.replace(/\n/g, ', ') || '-');
         }
         yPosition += 3;
 
@@ -1435,22 +1559,18 @@ async function generatePDF() {
                 addDataLine('E-mail:', form.elements[`socio${i}Email`].value || '-');
                 addDataLine('Celular:', form.elements[`socio${i}Celular`].value || '-');
                 addDataLine('Participação (%):', form.elements[`socio${i}Participacao`].value || '0');
+                addDataLine('Documento:', uploadedDocuments[`socio${i}`] ? '✓ Anexado' : '✗ Não anexado');
                 yPosition += 3;
             }
         }
 
-        // INFORMAÇÕES ADICIONAIS
-        addSection('INFORMAÇÕES ADICIONAIS');
-        addDataLine('Honorário:', 'R$ 600,00 (elaboração e registro)');
-        addDataLine('Taxa JUCIS:', 'R$ 430,96');
-        addDataLine('Requisito:', 'Selo de confiabilidade do portal gov.br');
-        yPosition += 3;
-
+      
         // RODAPÉ
         if (yPosition > pageHeight - 20) {
             doc.addPage();
             yPosition = margin;
         }
+
         doc.setTextColor(...grayDark);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
@@ -1459,6 +1579,7 @@ async function generatePDF() {
 
         // Salvar PDF
         doc.save(`Alteracao_Empresa_${formData.nomeEmpresa || 'Formulario'}.pdf`);
+
         resolve();
     });
 }
@@ -1483,6 +1604,8 @@ async function handleShareWhatsapp() {
 async function handleDownloadPDF() {
     closeModal();
 }
+
+
     </script>
 </body>
 </html>
