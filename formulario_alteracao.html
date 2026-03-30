@@ -9,745 +9,730 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* ===== RESET E VARIÁVEIS ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary-color: #2E5090;
-            --primary-light: #4472C4;
-            --primary-dark: #1F3A5F;
-            --secondary-color: #70AD47;
-            --gray-50: #F8F9FA;
-            --gray-100: #F0F1F3;
-            --gray-150: #E8EAED;
-            --gray-200: #E0E1E5;
-            --gray-300: #D1D3D8;
-            --gray-400: #BBBDC0;
-            --gray-500: #8B8D91;
-            --gray-600: #5F6368;
-            --gray-700: #3C4043;
-            --gray-800: #202124;
-            --border-radius: 5px;
-            --box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-            --box-shadow-lg: 0 4px 12px rgba(46, 80, 144, 0.12);
-        }
-
-        html {
-            font-size: 16px;
-        }
-
-        body {
-            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #F5F6F8 0%, #EAEEF5 100%);
-            color: var(--gray-700);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            color: white;
-            padding: 50px 30px;
-            border-radius: 8px;
-            margin-bottom: 40px;
-            box-shadow: var(--box-shadow-lg);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        .logo-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo {
-            max-width: 140px;
-            height: auto;
-            filter: brightness(1.1);
-        }
-
-        .logo-section h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            letter-spacing: -0.3px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .subtitle {
-            font-size: 13px;
-            opacity: 0.95;
-            font-weight: 500;
-            letter-spacing: 0.2px;
-        }
-
-        .form-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border: 1px solid var(--gray-150);
-        }
-
-        .form-section {
-            padding: 30px;
-            border-bottom: 1px solid var(--gray-150);
-        }
-
-        .form-section:last-of-type {
-            border-bottom: none;
-        }
-
-        .section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            padding: 12px 15px;
-            margin: -30px -30px 25px -30px;
-            border-radius: 8px 8px 0 0;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            box-shadow: 0 2px 4px rgba(46, 80, 144, 0.1);
-        }
-
-        .subsection-header {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin: 20px 0 15px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--gray-300);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: var(--gray-700);
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="email"],
-        .form-group input[type="tel"],
-        .form-group input[type="number"],
-        .form-group input[type="file"],
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--gray-300);
-            border-radius: var(--border-radius);
-            font-size: 13px;
-            font-family: inherit;
-            transition: all 0.3s ease;
-            background-color: white;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="email"]:focus,
-        .form-group input[type="tel"]:focus,
-        .form-group input[type="number"]:focus,
-        .form-group input[type="file"]:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary-light);
-            box-shadow: 0 0 0 3px rgba(68, 114, 196, 0.08);
-            background-color: var(--gray-50);
-        }
-
-        .form-group input:disabled,
-        .form-group select:disabled,
-        .form-group textarea:disabled {
-            background-color: var(--gray-100);
-            color: var(--gray-500);
-            cursor: not-allowed;
-            border-color: var(--gray-300);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--gray-300);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .input-group:focus-within {
-            border-color: var(--primary-light);
-            box-shadow: 0 0 0 3px rgba(68, 114, 196, 0.08);
-        }
-
-        .input-group .currency {
-            padding: 10px 12px;
-            background-color: var(--gray-100);
-            color: var(--gray-600);
-            font-weight: 600;
-            border-right: 1px solid var(--gray-300);
-            min-width: 40px;
-            text-align: center;
-            font-size: 13px;
-        }
-
-        .input-group input {
-            flex: 1;
-            border: none;
-            padding: 10px 12px;
-            font-size: 13px;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            background-color: var(--gray-50);
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .radio-group label {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--gray-700);
-            font-size: 13px;
-        }
-
-        .radio-group input[type="radio"] {
-            margin-right: 8px;
-            cursor: pointer;
-            width: 16px;
-            height: 16px;
-            accent-color: var(--primary-light);
-        }
-
-        .form-group input[type="checkbox"] {
-            margin-right: 8px;
-            cursor: pointer;
-            width: 16px;
-            height: 16px;
-            accent-color: var(--primary-light);
-        }
-
-        .socio-card {
-            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .socio-card:hover {
-            border-color: var(--primary-light);
-            box-shadow: 0 4px 12px rgba(46, 80, 144, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .socio-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--primary-light);
-        }
-
-        .socio-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-
-        .btn-remove-socio {
-            background-color: #C5504B;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-remove-socio:hover {
-            background-color: #A63C37;
-            transform: scale(1.05);
-        }
-
-        .info-box {
-            background: linear-gradient(135deg, #E7F0F7 0%, #F0F4F9 100%);
-            border-left: 4px solid var(--primary-light);
-            padding: 12px 15px;
-            border-radius: var(--border-radius);
-            margin: 20px 0;
-            font-size: 12px;
-            color: var(--gray-700);
-            line-height: 1.6;
-            border: 1px solid #D9E3F0;
-        }
-
-        .info-box p {
-            margin-bottom: 6px;
-        }
-
-        .info-box p:last-child {
-            margin-bottom: 0;
-        }
-
-        .legal-text {
-            background: var(--gray-50);
-            padding: 15px;
-            border-radius: var(--border-radius);
-            border: 1px solid var(--gray-200);
-            font-size: 12px;
-            line-height: 1.7;
-            color: var(--gray-700);
-        }
-
-        .legal-text p {
-            margin-bottom: 12px;
-        }
-
-        .legal-text p:last-child {
-            margin-bottom: 0;
-        }
-
-        .legal-text h4 {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-top: 15px;
-            margin-bottom: 8px;
-        }
-
-        .legal-text h4:first-child {
-            margin-top: 0;
-        }
-
-        .document-preview {
-            padding: 10px;
-            background: var(--gray-100);
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .document-preview img {
-            max-width: 200px;
-            max-height: 150px;
-            border-radius: 4px;
-        }
-
-        .document-info {
-            flex: 1;
-        }
-
-        .document-info strong {
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .document-info small {
-            color: var(--gray-500);
-            display: block;
-        }
-
-        .button-section {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding: 30px;
-        }
-
-        .btn {
-            padding: 12px 28px;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
-            color: white;
-            box-shadow: var(--box-shadow-lg);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(46, 80, 144, 0.2);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background-color: var(--gray-300);
-            color: var(--gray-800);
-            box-shadow: var(--box-shadow);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--gray-400);
-            transform: translateY(-2px);
-        }
-
-        .btn-add-socio {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, #5A8C3A 100%);
-            color: white;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: var(--box-shadow-lg);
-        }
-
-        .btn-add-socio:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(112, 173, 71, 0.2);
-        }
-
-        .btn-whatsapp {
-            background: linear-gradient(135deg, #25D366 0%, #1FA857 100%);
-            color: white;
-            box-shadow: var(--box-shadow-lg);
-        }
-
-        .btn-whatsapp:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.2);
-        }
-
-        .btn-whatsapp:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-            backdrop-filter: blur(2px);
-        }
-
-        .modal.hidden {
-            display: none;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            max-width: 500px;
-            width: 100%;
-            animation: slideUp 0.3s ease;
-            border: 1px solid var(--gray-150);
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            color: white;
-            border-radius: 8px 8px 0 0;
-            border-bottom: 1px solid var(--gray-150);
-        }
-
-        .modal-header h2 {
-            font-size: 16px;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: white;
-            transition: opacity 0.3s ease;
-        }
-
-        .modal-close:hover {
-            opacity: 0.8;
-        }
-
-        .modal-body {
-            padding: 25px 20px;
-        }
-
-        .modal-body p {
-            margin-bottom: 20px;
-            color: var(--gray-700);
-            font-size: 13px;
-        }
-
-        .share-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .share-options .btn {
-            width: 100%;
-            justify-content: center;
-            padding: 14px;
-            font-size: 14px;
-        }
-
-        .share-options .icon {
-            font-size: 18px;
-        }
-
-        .success-message {
-            background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);
-            border: 1px solid #C3E6CB;
-            color: #155724;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success-message.show {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 12px;
-            }
-
-            .header {
-                padding: 35px 20px;
-                margin-bottom: 30px;
-            }
-
-            .logo {
-                max-width: 120px;
-            }
-
-            .logo-section h1 {
-                font-size: 22px;
-            }
-
-            .form-section {
-                padding: 20px;
-            }
-
-            .section-title {
-                margin: -20px -20px 20px -20px;
-                font-size: 12px;
-            }
-
-            .button-section {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-
-            .socio-card {
-                padding: 15px;
-            }
-
-            .radio-group {
-                flex-direction: column;
-                gap: 12px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            html {
-                font-size: 14px;
-            }
-
-            .header {
-                padding: 25px 15px;
-                margin-bottom: 20px;
-            }
-
-            .logo {
-                max-width: 100px;
-            }
-
-            .logo-section h1 {
-                font-size: 18px;
-            }
-
-            .subtitle {
-                font-size: 11px;
-            }
-
-            .form-section {
-                padding: 15px;
-            }
-
-            .section-title {
-                margin: -15px -15px 15px -15px;
-                font-size: 11px;
-                padding: 10px 12px;
-            }
-
-            .form-group {
-                margin-bottom: 15px;
-            }
-
-            .form-group label {
-                font-size: 12px;
-                margin-bottom: 6px;
-            }
-
-            .form-group input,
-            .form-group select,
-            .form-group textarea {
-                font-size: 12px;
-                padding: 8px 10px;
-            }
-
-            .btn {
-                padding: 10px 16px;
-                font-size: 12px;
-            }
-
-            .modal-content {
-                max-width: 90%;
-            }
-        }
-
-        @media print {
-            body {
-                background: white;
-            }
-
-            .header {
-                page-break-after: avoid;
-            }
-
-            .form-section {
-                page-break-inside: avoid;
-            }
-
-            .button-section {
-                display: none;
-            }
-
-            .modal {
-                display: none;
-            }
-        }
+      
+/* ===== RESET E VARIÁVEIS ===== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #8B3A3A;
+    --primary-light: #A85252;
+    --primary-dark: #6B2C2C;
+    --secondary-color: #70AD47;
+    --gray-50: #F5F5F5;
+    --gray-100: #ECECEC;
+    --gray-150: #E3E3E3;
+    --gray-200: #DADADA;
+    --gray-300: #CCCCCC;
+    --gray-400: #BBBDC0;
+    --gray-500: #8B8D91;
+    --gray-600: #6B6D71;
+    --gray-700: #4B4D51;
+    --gray-800: #2B2D31;
+    --border-radius: 5px;
+    --box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --box-shadow-lg: 0 4px 12px rgba(139, 58, 58, 0.12);
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    background: linear-gradient(135deg, #F5F5F5 0%, #ECECEC 100%);
+    color: var(--gray-700);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 50px 30px;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    box-shadow: var(--box-shadow-lg);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+}
+
+.logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.logo {
+    max-width: 140px;
+    height: auto;
+    filter: brightness(1.1);
+}
+
+.logo-section h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    letter-spacing: -0.3px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+    font-size: 13px;
+    opacity: 0.95;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.form-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-150);
+}
+
+.form-section {
+    padding: 30px;
+    border-bottom: 1px solid var(--gray-150);
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    padding: 12px 15px;
+    margin: -30px -30px 25px -30px;
+    border-radius: 8px 8px 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    box-shadow: 0 2px 4px rgba(139, 58, 58, 0.1);
+}
+
+.subsection-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 20px 0 15px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-300);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group input[type="number"],
+.form-group input[type="file"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="tel"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="file"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(168, 82, 82, 0.08);
+    background-color: var(--gray-50);
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+    cursor: not-allowed;
+    border-color: var(--gray-300);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.input-group:focus-within {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(168, 82, 82, 0.08);
+}
+
+.input-group .currency {
+    padding: 10px 12px;
+    background-color: var(--gray-100);
+    color: var(--gray-600);
+    font-weight: 600;
+    border-right: 1px solid var(--gray-300);
+    min-width: 40px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.input-group input {
+    flex: 1;
+    border: none;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.input-group input:focus {
+    outline: none;
+    background-color: var(--gray-50);
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: 13px;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 8px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-light);
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-light);
+}
+
+.socio-card {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.socio-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 12px rgba(139, 58, 58, 0.1);
+    transform: translateY(-2px);
+}
+
+.socio-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary-light);
+}
+
+.socio-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.btn-remove-socio {
+    background-color: #C5504B;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-remove-socio:hover {
+    background-color: #A63C37;
+    transform: scale(1.05);
+}
+
+.info-box {
+    background: linear-gradient(135deg, #F0F0F0 0%, #F5F5F5 100%);
+    border-left: 4px solid var(--primary-light);
+    padding: 12px 15px;
+    border-radius: var(--border-radius);
+    margin: 20px 0;
+    font-size: 12px;
+    color: var(--gray-700);
+    line-height: 1.6;
+    border: 1px solid var(--gray-200);
+}
+
+.info-box p {
+    margin-bottom: 6px;
+}
+
+.info-box p:last-child {
+    margin-bottom: 0;
+}
+
+.legal-text {
+    background: var(--gray-50);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--gray-700);
+}
+
+.legal-text p {
+    margin-bottom: 12px;
+}
+
+.legal-text p:last-child {
+    margin-bottom: 0;
+}
+
+.legal-text h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-top: 15px;
+    margin-bottom: 8px;
+}
+
+.legal-text h4:first-child {
+    margin-top: 0;
+}
+
+.document-preview {
+    padding: 10px;
+    background: var(--gray-100);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.document-preview img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 4px;
+}
+
+.document-info {
+    flex: 1;
+}
+
+.document-info strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.document-info small {
+    color: var(--gray-500);
+    display: block;
+}
+
+.button-section {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 30px;
+}
+
+.btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+    color: white;
+    box-shadow: var(--box-shadow-lg);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 58, 58, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background-color: var(--gray-300);
+    color: var(--gray-800);
+    box-shadow: var(--box-shadow);
+}
+
+.btn-secondary:hover {
+    background-color: var(--gray-400);
+    transform: translateY(-2px);
+}
+
+.btn-add-socio {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #5A8C3A 100%);
+    color: white;
+    width: 100%;
+    margin-top: 20px;
+    box-shadow: var(--box-shadow-lg);
+}
+
+.btn-add-socio:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(112, 173, 71, 0.2);
+}
+
+.btn-whatsapp {
+    background: linear-gradient(135deg, #25D366 0%, #1FA857 100%);
+    color: white;
+    box-shadow: var(--box-shadow-lg);
+}
+
+.btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.2);
+}
+
+.btn-whatsapp:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 100%;
+    animation: slideUp 0.3s ease;
+    border: 1px solid var(--gray-150);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid var(--gray-150);
+}
+
+.modal-header h2 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: white;
+    transition: opacity 0.3s ease;
+}
+
+.modal-close:hover {
+    opacity: 0.8;
+}
+
+.modal-body {
+    padding: 25px 20px;
+}
+
+.modal-body p {
+    margin-bottom: 20px;
+    color: var(--gray-700);
+    font-size: 13px;
+}
+
+.share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.share-options .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    font-size: 14px;
+}
+
+.share-options .icon {
+    font-size: 18px;
+}
+
+.success-message {
+    background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);
+    border: 1px solid #C3E6CB;
+    color: #155724;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.success-message.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+    .header {
+        padding: 35px 20px;
+        margin-bottom: 30px;
+    }
+    .logo {
+        max-width: 120px;
+    }
+    .logo-section h1 {
+        font-size: 22px;
+    }
+    .form-section {
+        padding: 20px;
+    }
+    .section-title {
+        margin: -20px -20px 20px -20px;
+        font-size: 12px;
+    }
+    .button-section {
+        flex-direction: column;
+    }
+    .btn {
+        width: 100%;
+    }
+    .socio-card {
+        padding: 15px;
+    }
+    .radio-group {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    html {
+        font-size: 14px;
+    }
+    .header {
+        padding: 25px 15px;
+        margin-bottom: 20px;
+    }
+    .logo {
+        max-width: 100px;
+    }
+    .logo-section h1 {
+        font-size: 18px;
+    }
+    .subtitle {
+        font-size: 11px;
+    }
+    .form-section {
+        padding: 15px;
+    }
+    .section-title {
+        margin: -15px -15px 15px -15px;
+        font-size: 11px;
+        padding: 10px 12px;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+    .btn {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+    .modal-content {
+        max-width: 90%;
+    }
+}
+
+@media print {
+    body {
+        background: white;
+    }
+    .header {
+        page-break-after: avoid;
+    }
+    .form-section {
+        page-break-inside: avoid;
+    }
+    .button-section {
+        display: none;
+    }
+    .modal {
+        display: none;
+    }
+}
+
+
+
+
+
+
+
     </style>
 </head>
 
@@ -755,8 +740,7 @@
     <div class="container">
         <header class="header">
             <div class="logo-section">
-                <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="logo">
-                <h1>FORMULÁRIO DE ALTERAÇÃO DE EMPRESA</h1>
+                               <h1>FORMULÁRIO DE ALTERAÇÃO DE EMPRESA</h1>
                 <p class="subtitle">SCONT Soluções Contábeis - Junta Comercial do Distrito Federal</p>
             </div>
         </header>
@@ -910,15 +894,7 @@
                 <button type="button" id="addSocioBtn" class="btn btn-add-socio">+ ADICIONAR SÓCIO</button>
             </section>
 
-            <!-- SEÇÃO 5: INFORMAÇÕES ADICIONAIS -->
-            <section class="form-section">
-                <h2 class="section-title">INFORMAÇÕES ADICIONAIS</h2>
-                <div class="info-box">
-                    <p><strong>Honorário:</strong> R$ 600,00 (elaboração e registro do processo de alteração na JUCIS/DF, RFB, SEFAZ/DF e DF Legal). Pagamento via boleto bancário.</p>
-                    <p><strong>Taxa JUCIS:</strong> R$ 430,96 (registro da alteração junto à JUCIS).</p>
-                    <p><strong>Requisito:</strong> Será necessário ter o selo de confiabilidade emitido no portal gov.br para assinatura do processo.</p>
-                </div>
-            </section>
+           
 
             <!-- SEÇÃO 6: CLÁUSULA DE RESPONSABILIDADE -->
             <section class="form-section">
@@ -1175,7 +1151,7 @@
                 removeButton = '<button type="button" class="btn-remove-socio" onclick="removeSocio(' + sociosCount + ')">REMOVER</button>';
             }
 
-            socioCard.innerHTML = '<div class="socio-card-header"><h3 class="socio-title">SÓCIO #' + sociosCount + '</h3>' + removeButton + '</div><div class="form-group"><label>Administrador?</label><div class="radio-group"><label><input type="radio" name="socio' + sociosCount + 'Admin" value="sim" ' + (sociosCount === 1 ? 'checked' : '') + ' required> Sim</label><label><input type="radio" name="socio' + sociosCount + 'Admin" value="nao"> Não</label></div></div><div class="form-group"><label><input type="checkbox" name="socio' + sociosCount + 'CNPJ" ' + (sociosCount === 1 ? 'checked' : '') + '> Responsável pelo CNPJ</label></div><div class="form-group"><label for="socio' + sociosCount + 'Nome">Nome Completo ' + (sociosCount === 1 ? '*' : '') + '</label><input type="text" id="socio' + sociosCount + 'Nome" name="socio' + sociosCount + 'Nome" placeholder="Digite o nome completo" ' + (sociosCount === 1 ? 'required' : '') + '></div><div class="form-group"><label for="socio' + sociosCount + 'EstadoCivil">Estado Civil</label><select id="socio' + sociosCount + 'EstadoCivil" name="socio' + sociosCount + 'EstadoCivil" onchange="toggleRegimePartilha(' + sociosCount + ')"><option value="">Selecione...</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option><option value="uniao_estavel">União Estável</option></select></div><div id="socio' + sociosCount + 'Regime" class="form-group hidden"><label for="socio' + sociosCount + 'RegimePartilha">Regime de Partilha de Bens</label><input type="text" id="socio' + sociosCount + 'RegimePartilha" name="socio' + sociosCount + 'RegimePartilha" placeholder="Ex: Comunhão Universal de Bens" disabled></div><div class="form-group"><label for="socio' + sociosCount + 'Naturalidade">Naturalidade</label><input type="text" id="socio' + sociosCount + 'Naturalidade" name="socio' + sociosCount + 'Naturalidade" placeholder="Cidade/Estado"></div><div class="form-group"><label for="socio' + sociosCount + 'Profissao">Profissão</label><input type="text" id="socio' + sociosCount + 'Profissao" name="socio' + sociosCount + 'Profissao" placeholder="Digite a profissão"></div><div class="form-group"><label for="socio' + sociosCount + 'Endereco">Endereço Residencial</label><input type="text" id="socio' + sociosCount + 'Endereco" name="socio' + sociosCount + 'Endereco" placeholder="Rua, número, complemento"></div><div class="form-row"><div class="form-group"><label for="socio' + sociosCount + 'CEP">CEP</label><input type="text" id="socio' + sociosCount + 'CEP" name="socio' + sociosCount + 'CEP" placeholder="00000-000" maxlength="9"></div><div class="form-group"><label for="socio' + sociosCount + 'Celular">Celular</label><input type="tel" id="socio' + sociosCount + 'Celular" name="socio' + sociosCount + 'Celular" placeholder="(61) 99999-9999"></div></div><div class="form-group"><label for="socio' + sociosCount + 'Email">E-mail</label><input type="email" id="socio' + sociosCount + 'Email" name="socio' + sociosCount + 'Email" placeholder="email@example.com"></div><div class="form-group"><label for="socio' + sociosCount + 'Participacao">Participação Societária (%)</label><input type="number" id="socio' + sociosCount + 'Participacao" name="socio' + sociosCount + 'Participacao" placeholder="0" min="0" max="100" step="0.01"></div><div class="form-group"><label for="socio' + sociosCount + 'Documento">Upload de Documento de Identificação (RG, CPF ou CNH) *</label><input type="file" id="socio' + sociosCount + 'Documento" name="socio' + sociosCount + 'Documento" accept=".pdf,.jpg,.jpeg,.png" required><small style="color: var(--gray-500); display: block; margin-top: 6px;">Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small><div id="socio' + sociosCount + 'DocumentoPreview" style="margin-top: 10px;"></div></div><div class="info-box"><strong>Importante:</strong> Enviar uma foto do RG e CPF ou CNH por e-mail juntamente com esse formulário.</div>';
+            socioCard.innerHTML = '<div class="socio-card-header"><h3 class="socio-title">SÓCIO #' + sociosCount + '</h3>' + removeButton + '</div><div class="form-group"><label>Administrador?</label><div class="radio-group"><label><input type="radio" name="socio' + sociosCount + 'Admin" value="sim" ' + (sociosCount === 1 ? 'checked' : '') + ' required> Sim</label><label><input type="radio" name="socio' + sociosCount + 'Admin" value="nao"> Não</label></div></div><div class="form-group"><label><input type="checkbox" name="socio' + sociosCount + 'CNPJ" ' + (sociosCount === 1 ? 'checked' : '') + '> Responsável pelo CNPJ</label></div><div class="form-group"><label for="socio' + sociosCount + 'Nome">Nome Completo ' + (sociosCount === 1 ? '*' : '') + '</label><input type="text" id="socio' + sociosCount + 'Nome" name="socio' + sociosCount + 'Nome" placeholder="Digite o nome completo" ' + (sociosCount === 1 ? 'required' : '') + '></div><div class="form-group"><label for="socio' + sociosCount + 'EstadoCivil">Estado Civil</label><select id="socio' + sociosCount + 'EstadoCivil" name="socio' + sociosCount + 'EstadoCivil" onchange="toggleRegimePartilha(' + sociosCount + ')"><option value="">Selecione...</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option><option value="uniao_estavel">União Estável</option></select></div><div id="socio' + sociosCount + 'Regime" class="form-group hidden"><label for="socio' + sociosCount + 'RegimePartilha">Regime de Partilha de Bens</label><input type="text" id="socio' + sociosCount + 'RegimePartilha" name="socio' + sociosCount + 'RegimePartilha" placeholder="Ex: Comunhão Universal de Bens" disabled></div><div class="form-group"><label for="socio' + sociosCount + 'Naturalidade">Naturalidade</label><input type="text" id="socio' + sociosCount + 'Naturalidade" name="socio' + sociosCount + 'Naturalidade" placeholder="Cidade/Estado"></div><div class="form-group"><label for="socio' + sociosCount + 'Profissao">Profissão</label><input type="text" id="socio' + sociosCount + 'Profissao" name="socio' + sociosCount + 'Profissao" placeholder="Digite a profissão"></div><div class="form-group"><label for="socio' + sociosCount + 'Endereco">Endereço Residencial</label><input type="text" id="socio' + sociosCount + 'Endereco" name="socio' + sociosCount + 'Endereco" placeholder="Rua, número, complemento"></div><div class="form-row"><div class="form-group"><label for="socio' + sociosCount + 'CEP">CEP</label><input type="text" id="socio' + sociosCount + 'CEP" name="socio' + sociosCount + 'CEP" placeholder="00000-000" maxlength="9"></div><div class="form-group"><label for="socio' + sociosCount + 'Celular">Celular</label><input type="tel" id="socio' + sociosCount + 'Celular" name="socio' + sociosCount + 'Celular" placeholder="(61) 99999-9999"></div></div><div class="form-group"><label for="socio' + sociosCount + 'Email">E-mail</label><input type="email" id="socio' + sociosCount + 'Email" name="socio' + sociosCount + 'Email" placeholder="email@example.com"></div><div class="form-group"><label for="socio' + sociosCount + 'Participacao">Participação Societária (%)</label><input type="number" id="socio' + sociosCount + 'Participacao" name="socio' + sociosCount + 'Participacao" placeholder="0" min="0" max="100" step="0.01"></div><div class="form-group"><label for="socio' + sociosCount + 'Documento">Upload de Documento de Identificação (RG, CPF ou CNH) *</label><input type="file" id="socio' + sociosCount + 'Documento" name="socio' + sociosCount + 'Documento" accept=".pdf,.jpg,.jpeg,.png" required><small style="color: var(--gray-500); display: block; margin-top: 6px;">Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small><div id="socio' + sociosCount + 'DocumentoPreview" style="margin-top: 10px;"></div></div>';
 
             sociosContainer.appendChild(socioCard);
 
@@ -1266,7 +1242,7 @@
         function gerarCaminhoCompleto(nomeEmpresa, tipo, nomeArquivo) {
             const empresaSanitizada = sanitizarNomeArquivo(nomeEmpresa);
             
-            // Estrutura: documentos/{empresa}/{tipo}/{arquivo}
+            // Estrutura: Alteracao/{empresa}/{tipo}/{arquivo}
             const caminho = 'Alteracao/' + empresaSanitizada + '/' + tipo + '/' + nomeArquivo;
             
             console.log('📁 Caminho completo:', caminho);
