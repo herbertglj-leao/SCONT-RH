@@ -43,7 +43,6 @@
             margin: 0 auto;
             padding: 20px;
         }
-        /* ===== HEADER OTIMIZADO PARA MOBILE ===== */
 .header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: white;
@@ -227,9 +226,6 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-        .form-row.three-cols {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
         .radio-group,
         .checkbox-group {
             display: flex;
@@ -254,7 +250,6 @@
             cursor: pointer;
             flex-shrink: 0;
         }
-        /* ===== CORREÇÃO: Checkbox inline com label =====*/
         .form-group > label {
             display: flex;
             align-items: center;
@@ -272,6 +267,14 @@
         }
         .hidden {
             display: none !important;
+        }
+        .subsection-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-300);
         }
         .socio-card {
             background-color: var(--gray-50);
@@ -448,9 +451,6 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
-            .form-row.three-cols {
-                grid-template-columns: 1fr;
-            }
             .radio-group,
             .checkbox-group {
                 flex-direction: column;
@@ -483,13 +483,20 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+
+
+<div class="container">
+    <header class="header">
+        <div class="logo-section">
             <h1>FORMULÁRIO DE REGISTRO DE EMPRESA</h1>
             <p>SCONT Soluções Contábeis</p>
         </div>
-        <div class="form-wrapper">
-            <form id="registroForm">
+    </header>
+    <div class="form-wrapper">
+        <form id="alteracaoForm">
+  
+
+
                 <!-- SEÇÃO 1: INFORMAÇÕES DA EMPRESA -->
                 <section class="form-section">
                     <h2 class="section-title">INFORMAÇÕES DA EMPRESA</h2>
