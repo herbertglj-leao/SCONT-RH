@@ -325,6 +325,10 @@ async function salvarFolhaNoSupabase() {
     persistenceState.saveInProgress = true;
     
     try {
+        // Obter dados do usuário autenticado
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const nomeUsuario = user?.user_metadata?.nome || user?.email || 'Sistema';
+        
         for (const folha of state.folhas) {
             const saveRecord = {
                 usuario_id: state.usuarioId,
@@ -339,7 +343,8 @@ async function salvarFolhaNoSupabase() {
                 data_atualizacao: new Date().toISOString(),
                 status: 'em_preenchimento',
                 criado_por: state.usuarioId,
-                atualizado_por: state.usuarioId
+                atualizado_por: state.usuarioId,
+                nome_usuario: nomeUsuario  // ✅ ADICIONADO
             };
             
             try {
@@ -382,7 +387,6 @@ async function salvarFolhaNoSupabase() {
         persistenceState.saveInProgress = false;
     }
 }
-
 function iniciarAutoSave() {
     if (persistenceState.autoSaveInterval) {
         clearInterval(persistenceState.autoSaveInterval);
@@ -412,16 +416,26 @@ async function carregarPreenchimentosAnteriores() {
             return;
         }
         
-        // Buscar registros no Supabase
+        console.log('🔄 Buscando preenchimentos anteriores...');
+        console.log('Empresa:', codigoEmpresa);
+        console.log('Competência:', competencia);
+        
+        // ✅ BUSCAR TODAS AS FOLHAS DA EMPRESA/COMPETÊNCIA DO USUÁRIO AUTENTICADO
         const { data: registros, error } = await supabaseClient
             .from('saves')
             .select('*')
+            .eq('usuario_id', state.usuarioId)
             .eq('empresa_codigo', codigoEmpresa)
             .eq('competencia', competencia)
             .eq('status', 'em_preenchimento')
             .order('data_atualizacao', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Erro ao buscar:', error);
+            throw error;
+        }
+        
+        console.log('📋 Registros encontrados:', registros?.length || 0);
         
         if (!registros || registros.length === 0) {
             console.log('ℹ️ Nenhum preenchimento anterior encontrado.');
@@ -429,14 +443,200 @@ async function carregarPreenchimentosAnteriores() {
             return;
         }
         
-        // Mostrar modal de seleção
-        mostrarModalPreenchimentosAnteriores(registros, competencia, codigoEmpresa);
+        // ✅ AGRUPAR POR DATA/USUÁRIO PARA EXIBIÇÃO
+        const agrupado = agruparPreenchimentos(registros);
+        
+        console.log('📊 Grupos encontrados:', agrupado.length);
+        
+        // ✅ MOSTRAR MODAL COM OPÇÃO DE CARREGAR TODOS
+        mostrarModalPreenchimentosAnterioresAgrupado(agrupado, competencia, codigoEmpresa, registros);
         
     } catch (erro) {
         console.error('❌ Erro ao carregar preenchimentos:', erro);
         mostrarMensagem('Erro', 'Erro ao carregar preenchimentos anteriores.');
     }
 }
+
+// ✅ NOVA FUNÇÃO: Agrupar preenchimentos
+function agruparPreenchimentos(registros) {
+    const agrupado = {};
+    
+    registros.forEach(registro => {
+        const dataFormatada = new Date(registro.data_atualizacao).toLocaleString('pt-BR');
+        const chave = `${registro.atualizado_por || 'Sistema'}_${dataFormatada}`;
+        
+        if (!agrupado[chave]) {
+            agrupado[chave] = {
+                usuarioId: registro.atualizado_por,
+                nomeUsuario: registro.nome_usuario || 'Sistema',
+                dataAtualizacao: registro.data_atualizacao,
+                dataFormatada: dataFormatada,
+                empregados: []
+            };
+        }
+        
+        agrupado[chave].empregados.push(registro);
+    });
+    
+    return Object.values(agrupado);
+}
+
+// ✅ NOVA FUNÇÃO: Modal com preenchimentos agrupados
+function mostrarModalPreenchimentosAnterioresAgrupado(agrupados, competencia, codigoEmpresa, todosRegistros) {
+    const modal = document.createElement('div');
+    modal.id = 'preenchimentosAnterioresModal';
+    modal.className = 'modal active';
+    
+    // ✅ CONTAR TOTAL DE FOLHAS
+    const totalFolhas = todosRegistros.length;
+    const empregadosUnicos = [...new Set(todosRegistros.map(r => r.nome_trabalhador))];
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 Preenchimentos Anteriores</h3>
+                <button type="button" class="modal-close" onclick="fecharModalPreenchimentos()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Preenchimentos encontrados para <strong>${codigoEmpresa}</strong> - <strong>${competencia}</strong>:</p>
+                <div id="preenchimentosList" class="registros-list"></div>
+                
+                <!-- ✅ BOTÕES REORGANIZADOS -->
+                <div class="modal-buttons-container">
+                    <button type="button" class="btn btn-primary btn-full" onclick="carregarTodosPreenchimentos('${codigoEmpresa}', '${competencia}')">
+                        ▶️ Carregar Preenchimento
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-full" onclick="iniciarNovoPreenchimento('${competencia}', '${codigoEmpresa}')">
+                        ➕ Novo Preenchimento
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const lista = document.getElementById('preenchimentosList');
+    
+    // ✅ MOSTRAR CADA GRUPO SEM BOTÃO INDIVIDUAL
+    agrupados.forEach((grupo, index) => {
+        const item = document.createElement('div');
+        item.className = 'registro-item';
+        
+        // Listar empregados do grupo
+        const empregadosLista = grupo.empregados
+            .map(e => e.nome_trabalhador)
+            .join(', ');
+        
+        const totalFolhasGrupo = grupo.empregados.length;
+        
+        // ✅ REMOVER BOTÃO INDIVIDUAL - APENAS EXIBIR INFORMAÇÕES
+        item.innerHTML = `
+            <div class="registro-info">
+                <h4>📁 Folhas: ${empregadosLista}</h4>
+                <p>👤 Atualizado por: <strong>${grupo.nomeUsuario}</strong></p>
+                <p>📅 Data: ${grupo.dataFormatada}</p>
+                <p>📊 Total de folhas: ${totalFolhasGrupo}</p>
+            </div>
+        `;
+        lista.appendChild(item);
+    });
+}
+
+// ✅ NOVA FUNÇÃO: Carregar todas as folhas de uma vez
+// ✅ NOVA FUNÇÃO: Carregar TODAS as folhas de uma empresa/competência
+async function carregarTodosPreenchimentos(codigoEmpresa, competencia) {
+    try {
+        console.log('🔄 Carregando TODAS as folhas...');
+        console.log('Empresa:', codigoEmpresa);
+        console.log('Competência:', competencia);
+        
+        // ✅ BUSCAR TODAS AS FOLHAS DA EMPRESA/COMPETÊNCIA
+        const { data: registros, error } = await supabaseClient
+            .from('saves')
+            .select('*')
+            .eq('usuario_id', state.usuarioId)
+            .eq('empresa_codigo', codigoEmpresa)
+            .eq('competencia', competencia)
+            .eq('status', 'em_preenchimento')
+            .order('nome_trabalhador', { ascending: true });
+        
+        if (error) {
+            console.error('❌ Erro ao buscar folhas:', error);
+            throw error;
+        }
+        
+        if (!registros || registros.length === 0) {
+            mostrarMensagem('Erro', 'Nenhuma folha encontrada para carregar.');
+            return;
+        }
+        
+        console.log('📋 Total de folhas a carregar:', registros.length);
+        
+        // ✅ LIMPAR FOLHAS ANTERIORES
+        state.folhas = [];
+        
+        // ✅ CARREGAR CADA FOLHA
+        registros.forEach((registro, index) => {
+            try {
+                const folhaRestaurada = {
+                    id: parseInt(registro.folha_id),
+                    nomeTrabalhador: registro.nome_trabalhador,
+                    dados: JSON.parse(registro.dados_json)
+                };
+                
+                state.folhas.push(folhaRestaurada);
+                console.log(`✅ Folha ${index + 1}/${registros.length} carregada: ${registro.nome_trabalhador}`);
+            } catch (erro) {
+                console.error(`❌ Erro ao carregar folha ${index + 1}:`, erro);
+            }
+        });
+        
+        // ✅ ATUALIZAR CONFIGURAÇÕES GLOBAIS (DO PRIMEIRO REGISTRO)
+        const primeiroRegistro = registros[0];
+        state.competencia = primeiroRegistro.competencia;
+        state.codigoEmpresa = primeiroRegistro.empresa_codigo;
+        state.jornada = primeiroRegistro.jornada || '08:00';
+        state.ruleExtra100Optional = primeiroRegistro.rule_extra_100_opcional || false;
+        state.feriados = JSON.parse(primeiroRegistro.feriados_json || '[]');
+        
+        // ✅ ATUALIZAR CAMPOS DE CONFIGURAÇÃO NA INTERFACE
+        const jornadaInput = document.getElementById('jornada');
+        if (jornadaInput) {
+            jornadaInput.value = state.jornada;
+        }
+        
+        const ruleCheckbox = document.getElementById('ruleExtra100Optional');
+        if (ruleCheckbox) {
+            ruleCheckbox.checked = state.ruleExtra100Optional;
+        }
+        
+        // ✅ DEFINIR PRIMEIRA ABA COMO SELECIONADA
+        state.abaSelecionada = 0;
+        
+        // ✅ FECHAR MODAL
+        fecharModalPreenchimentos();
+        
+        // ✅ MOSTRAR TELA PRINCIPAL
+        mostrarTela('mainScreen');
+        
+        // ✅ RENDERIZAR INTERFACE
+        renderizarAbas();
+        renderizarConteudoAba();
+        renderizarTabelaFeriados();
+        
+        console.log(`✅ ${registros.length} folhas carregadas com sucesso!`);
+        mostrarMensagem('Sucesso', `${registros.length} folhas carregadas com sucesso!\n\nEmpregados: ${registros.map(r => r.nome_trabalhador).join(', ')}`);
+        
+        // ✅ INICIAR AUTO-SAVE
+        iniciarAutoSave();
+        
+    } catch (erro) {
+        console.error('❌ Erro ao carregar preenchimentos:', erro);
+        mostrarMensagem('Erro', 'Erro ao carregar preenchimentos. Tente novamente.');
+    }
+}
+
 
 function mostrarModalPreenchimentosAnteriores(registros, competencia, codigoEmpresa) {
     const modal = document.createElement('div');
@@ -483,50 +683,6 @@ function mostrarModalPreenchimentosAnteriores(registros, competencia, codigoEmpr
     });
 }
 
-async function carregarPreenchimentoAnterior(saveId) {
-    try {
-        const { data: registro, error } = await supabaseClient
-            .from('saves')
-            .select('*')
-            .eq('id', saveId)
-            .single();
-        
-        if (error) throw error;
-        
-        state.competencia = registro.competencia;
-        state.codigoEmpresa = registro.empresa_codigo;
-        state.jornada = registro.jornada;
-        state.ruleExtra100Optional = registro.rule_extra_100_opcional;
-        state.feriados = JSON.parse(registro.feriados_json);
-        
-        const folhaRestaurada = {
-            id: parseInt(registro.folha_id),
-            nomeTrabalhador: registro.nome_trabalhador,
-            dados: JSON.parse(registro.dados_json)
-        };
-        
-        const indexExistente = state.folhas.findIndex(f => f.id === folhaRestaurada.id);
-        if (indexExistente >= 0) {
-            state.folhas[indexExistente] = folhaRestaurada;
-        } else {
-            state.folhas.push(folhaRestaurada);
-        }
-        
-        state.abaSelecionada = state.folhas.length - 1;
-        
-        fecharModalPreenchimentos();
-        mostrarTela('mainScreen');
-        renderizarAbas();
-        renderizarConteudoAba();
-        
-        mostrarMensagem('Sucesso', `Preenchimento de ${registro.nome_trabalhador} carregado!`);
-        console.log('✅ Preenchimento carregado');
-        
-    } catch (erro) {
-        console.error('❌ Erro ao carregar preenchimento:', erro);
-        mostrarMensagem('Erro', 'Erro ao carregar preenchimento.');
-    }
-}
 
 function fecharModalPreenchimentos() {
     const modal = document.getElementById('preenchimentosAnterioresModal');
@@ -1018,42 +1174,113 @@ function calcularFolha(folha) {
             horasDevidas: 0
         }
     };
+    
     const [mes, ano] = state.competencia.split('/');
     const diasNoMes = new Date(ano, mes, 0).getDate();
     const jornada = converterHoraParaMinutos(state.jornada);
+    
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 PROCESSANDO FOLHA: ' + folha.nomeTrabalhador);
+    console.log('Competência: ' + state.competencia);
+    console.log('Jornada: ' + state.jornada);
+    console.log('Regra 100% (A partir da 3ª Extra): ' + (state.ruleExtra100Optional ? 'ATIVADA' : 'DESATIVADA'));
+    console.log('='.repeat(80));
+    
     for (let dia = 1; dia <= diasNoMes; dia++) {
         const data = String(dia).padStart(2, '0') + '/' + mes + '/' + ano;
         const dataObj = new Date(ano, mes - 1, dia);
         const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'][dataObj.getDay()];
         const dados = folha.dados[data];
+        
         const isFeriado = state.feriados.some(f => f.data === data);
         const isDSR = dataObj.getDay() === 0;
+        
         const entrada1 = converterHoraParaMinutos(dados.entrada1);
         const saida1 = converterHoraParaMinutos(dados.saida1);
         const entrada2 = converterHoraParaMinutos(dados.entrada2);
         const saida2 = converterHoraParaMinutos(dados.saida2);
+        
+        // Calcular horas trabalhadas
         const horasTrabalhadas = calcularHorasTrabalhadas(entrada1, saida1) + calcularHorasTrabalhadas(entrada2, saida2);
-        console.log('\n📅 ' + data + ' - ' + diaSemana);
+        
+        // Se não há trabalho, pular
+        if (horasTrabalhadas === 0) {
+            continue;
+        }
+        
+        console.log('\n📅 ' + data + ' - ' + diaSemana + (isFeriado ? ' 🎉 FERIADO' : '') + (isDSR ? ' 🚫 DSR' : ''));
         console.log('  Período 1: ' + dados.entrada1 + ' a ' + dados.saida1 + ' = ' + converterMinutosParaHora(calcularHorasTrabalhadas(entrada1, saida1)));
         console.log('  Período 2: ' + dados.entrada2 + ' a ' + dados.saida2 + ' = ' + converterMinutosParaHora(calcularHorasTrabalhadas(entrada2, saida2)));
         console.log('  Total Trabalhadas: ' + converterMinutosParaHora(horasTrabalhadas));
+        
+        // ✅ CÁLCULO DE HORAS NOTURNAS
         const horasNoturnaReais = calcularHorasNoturnas(entrada1, saida1, entrada2, saida2);
         const horasNoturnaConvertida = calcularHorasNoturnaConvertida(horasNoturnaReais);
+        
+        console.log('  Noturnas Reais: ' + converterMinutosParaHora(horasNoturnaReais));
+        console.log('  Noturnas Convertidas: ' + converterMinutosParaHora(horasNoturnaConvertida));
+        
+        // ✅ CÁLCULO CORRETO DE HORAS EXTRAS COM PRIORIDADES
         let horasExtras50 = 0;
         let horasExtras100Geral = 0;
         let horasExtras100Opcional = 0;
-        const horasExtrasTotais = Math.max(0, horasTrabalhadas - jornada);
+        
+        // ✅ USAR HORAS NOTURNAS CONVERTIDAS PARA CÁLCULO DE EXTRAS
+        const horasTrabalhadasAjustadas = horasTrabalhadas + (horasNoturnaConvertida - horasNoturnaReais);
+        const horasExtrasTotais = Math.max(0, horasTrabalhadasAjustadas - jornada);
+        
+        console.log('  Horas Trabalhadas (com noturnas convertidas): ' + converterMinutosParaHora(horasTrabalhadasAjustadas));
+        console.log('  Horas Extras Totais: ' + converterMinutosParaHora(horasExtrasTotais));
+        
+        // ============================================
+        // PRIORIDADE 1: FERIADO OU DSR
+        // ============================================
         if (isFeriado || isDSR) {
-            horasExtras100Geral = horasExtrasTotais;
-        } else {
-            if (state.ruleExtra100Optional && horasExtrasTotais > jornada) {
-                horasExtras100Opcional = horasExtrasTotais - jornada;
-                horasExtras50 = jornada;
-            } else {
+            horasExtras100Geral = horasTrabalhadas;
+            console.log('  ⚠️ FERIADO/DSR: Todas as ' + converterMinutosParaHora(horasTrabalhadas) + ' são 100%');
+        } 
+        // ============================================
+        // PRIORIDADE 2: DIA NORMAL COM REGRA 100% OPCIONAL
+        // ============================================
+        else if (state.ruleExtra100Optional && horasExtrasTotais > 0) {
+            // ✅ REGRA CORRIGIDA:
+            // - Primeiras 2 horas extras = 50%
+            // - A partir da 3ª hora extra = 100%
+            
+            const duasHoras = 2 * 60;  // 2 horas em minutos
+            
+            if (horasExtrasTotais <= duasHoras) {
+                // Apenas até 2 horas extras
                 horasExtras50 = horasExtrasTotais;
+                console.log('  ✅ Regra 100% ATIVADA (A partir da 3ª hora)');
+                console.log('     Extra 50% (até 2h): ' + converterMinutosParaHora(horasExtras50));
+            } else {
+                // Mais de 2 horas extras
+                horasExtras50 = duasHoras;  // Primeiras 2 horas = 50%
+                horasExtras100Opcional = horasExtrasTotais - duasHoras;  // Restante = 100%
+                console.log('  ✅ Regra 100% ATIVADA (A partir da 3ª hora)');
+                console.log('     Extra 50% (até 2h): ' + converterMinutosParaHora(horasExtras50));
+                console.log('     Extra 100% (a partir 3ª): ' + converterMinutosParaHora(horasExtras100Opcional));
             }
         }
-        const horasDevidas = Math.max(0, jornada - horasTrabalhadas);
+        // ============================================
+        // PRIORIDADE 3: DIA NORMAL SEM REGRA OPCIONAL
+        // ============================================
+        else {
+            // Padrão: todas as extras são 50%
+            horasExtras50 = horasExtrasTotais;
+            console.log('  ℹ️ Regra 100% DESATIVADA');
+            console.log('     Extra 50%: ' + converterMinutosParaHora(horasExtras50));
+        }
+        
+        // ✅ CALCULAR HORAS DEVIDAS USANDO HORAS CONVERTIDAS
+        const horasDevidas = Math.max(0, jornada - horasTrabalhadasAjustadas);
+        
+        if (horasDevidas > 0) {
+            console.log('  ⏱️ Horas Devidas: ' + converterMinutosParaHora(horasDevidas));
+        }
+        
+        // Acumular no consolidado
         resultado.consolidado.horasTrabalhadas += horasTrabalhadas;
         resultado.consolidado.horasExtras50 += horasExtras50;
         resultado.consolidado.horasExtras100Geral += horasExtras100Geral;
@@ -1061,6 +1288,8 @@ function calcularFolha(folha) {
         resultado.consolidado.horasNoturnaReais += horasNoturnaReais;
         resultado.consolidado.horasNoturnaConvertida += horasNoturnaConvertida;
         resultado.consolidado.horasDevidas += horasDevidas;
+        
+        // Adicionar ao array de dias
         resultado.dias.push({
             data,
             diaSemana,
@@ -1079,9 +1308,21 @@ function calcularFolha(folha) {
             isDSR
         });
     }
+    
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 CONSOLIDADO DO MÊS - ' + folha.nomeTrabalhador);
+    console.log('='.repeat(80));
+    console.log('  Horas Trabalhadas: ' + converterMinutosParaHora(resultado.consolidado.horasTrabalhadas));
+    console.log('  Extras 50% (até 2h): ' + converterMinutosParaHora(resultado.consolidado.horasExtras50));
+    console.log('  Extras 100% (Feriado/DSR): ' + converterMinutosParaHora(resultado.consolidado.horasExtras100Geral));
+    console.log('  Extras 100% (A partir 3ª): ' + converterMinutosParaHora(resultado.consolidado.horasExtras100Opcional));
+    console.log('  Noturnas Reais: ' + converterMinutosParaHora(resultado.consolidado.horasNoturnaReais));
+    console.log('  Noturnas Convertidas: ' + converterMinutosParaHora(resultado.consolidado.horasNoturnaConvertida));
+    console.log('  Horas Devidas: ' + converterMinutosParaHora(resultado.consolidado.horasDevidas));
+    console.log('='.repeat(80) + '\n');
+    
     return resultado;
 }
-
 function converterHoraParaMinutos(hora) {
     if (!hora || hora.trim() === '') return 0;
     const [h, m] = hora.split(':').map(Number);
@@ -1095,23 +1336,77 @@ function converterMinutosParaHora(minutos) {
 }
 
 function calcularHorasNoturnas(entrada1, saida1, entrada2, saida2) {
-    const inicioNoturno = 22 * 60;
-    const fimNoturno = 5 * 60;
-    const minutosPorDia = 24 * 60;
+    const inicioNoturno = 22 * 60;  // 22:00 = 1320 minutos
+    const fimNoturno = 5 * 60;      // 05:00 = 300 minutos
+    
     let minutosNoturnos = 0;
-    const inicio = Math.min(entrada1, entrada2);
-    const fim = Math.max(saida1, saida2);
-    if (inicio === 0 || fim === 0) return 0;
-    const diaInicial = Math.floor(inicio / minutosPorDia);
-    const diaFinal = Math.floor((fim - 1) / minutosPorDia);
-    for (let dia = diaInicial; dia <= diaFinal; dia++) {
-        const base = dia * minutosPorDia;
-        minutosNoturnos += intersecaoMinutos(inicio, fim, base + inicioNoturno, base + minutosPorDia);
-        minutosNoturnos += intersecaoMinutos(inicio, fim, base, base + fimNoturno);
+    
+    // Período 1
+    if (entrada1 > 0 && saida1 > 0) {
+        minutosNoturnos += calcularMinutosNoturnoPeriodo(entrada1, saida1, inicioNoturno, fimNoturno);
     }
-    console.log('    → Minutos noturnos calculados: ' + minutosNoturnos + ' min');
+    
+    // Período 2
+    if (entrada2 > 0 && saida2 > 0) {
+        minutosNoturnos += calcularMinutosNoturnoPeriodo(entrada2, saida2, inicioNoturno, fimNoturno);
+    }
+    
+    console.log('    → Minutos noturnos reais: ' + minutosNoturnos + ' min (' + converterMinutosParaHora(minutosNoturnos) + ')');
+    
     return minutosNoturnos;
 }
+
+/**
+ * Calcula minutos noturnos em um período específico
+ * @param {number} entrada - Minutos desde 00:00
+ * @param {number} saida - Minutos desde 00:00
+ * @param {number} inicioNoturno - 22:00 em minutos (1320)
+ * @param {number} fimNoturno - 05:00 em minutos (300)
+ * @returns {number} Minutos noturnos
+ */
+function calcularMinutosNoturnoPeriodo(entrada, saida, inicioNoturno, fimNoturno) {
+    let minutosNoturnos = 0;
+    
+    // Se saída < entrada, significa que passou da meia-noite
+    if (saida < entrada) {
+        // Trabalhou até depois da meia-noite
+        // Parte 1: De entrada até 23:59 (se entrada >= 22:00)
+        if (entrada >= inicioNoturno) {
+            minutosNoturnos += (24 * 60) - entrada;  // Até meia-noite
+        }
+        
+        // Parte 2: De 00:00 até saída (se saída <= 05:00)
+        if (saida <= fimNoturno) {
+            minutosNoturnos += saida;  // Desde meia-noite
+        } else {
+            minutosNoturnos += fimNoturno;  // Até 05:00
+        }
+    } else {
+        // Trabalhou no mesmo dia
+        // Verificar se há sobreposição com período noturno
+        
+        // Caso 1: Período noturno normal (22:00 a 05:00 do dia seguinte)
+        if (entrada < inicioNoturno && saida > inicioNoturno) {
+            // Entrada antes de 22:00, saída depois de 22:00
+            minutosNoturnos += saida - inicioNoturno;
+        } else if (entrada >= inicioNoturno && saida >= inicioNoturno) {
+            // Ambos após 22:00
+            minutosNoturnos += saida - entrada;
+        }
+        
+        // Caso 2: Período madrugada (00:00 a 05:00)
+        if (entrada < fimNoturno && saida > entrada) {
+            // Entrada antes de 05:00, saída depois
+            minutosNoturnos += Math.min(saida, fimNoturno) - entrada;
+        } else if (entrada < fimNoturno && saida >= fimNoturno) {
+            // Entrada antes de 05:00, saída depois de 05:00
+            minutosNoturnos += fimNoturno - entrada;
+        }
+    }
+    
+    return Math.max(0, minutosNoturnos);
+}
+
 
 function intersecaoMinutos(inicioA, fimA, inicioB, fimB) {
     const inicio = Math.max(inicioA, inicioB);
@@ -1120,7 +1415,12 @@ function intersecaoMinutos(inicioA, fimA, inicioB, fimB) {
 }
 
 function calcularHorasNoturnaConvertida(minutosNoturnos) {
+    // Conversão: 1 hora noturna = 52,5 minutos
+    // Logo: minutos reais / 0,875 = minutos convertidos
     const minutosConvertidos = Math.round(minutosNoturnos / 0.875);
+    
+    console.log('    → Minutos noturnos convertidos: ' + minutosConvertidos + ' min (' + converterMinutosParaHora(minutosConvertidos) + ')');
+    
     return minutosConvertidos;
 }
 

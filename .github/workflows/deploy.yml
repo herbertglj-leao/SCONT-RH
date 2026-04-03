@@ -1,24 +1,34 @@
-name: Deploy
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Create Supabase config
-      run: |
-        cat > folha-ponto/config.js << EOF
-        const SUPABASE_URL = '${{ secrets.SUPABASE_URL }}';
-        const SUPABASE_KEY = '${{ secrets.SUPABASE_KEY }}';
-        EOF
-    
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
+      # ✅ ATUALIZAR PARA v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # ✅ CONFIGURAR GIT
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+      
+      # ✅ ATUALIZAR PARA v4 E NODE.JS 24
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./folha-ponto
+          force_orphan: true
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

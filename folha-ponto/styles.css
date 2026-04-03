@@ -1243,3 +1243,177 @@ tbody tr.dsr {
 .hidden {
     display: none !important;
 }
+
+/* Estilos para registros agrupados */
+.registro-item {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.registro-info {
+    flex: 1;
+    text-align: left;
+}
+
+.registro-info h4 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.registro-info p {
+    color: #666;
+    font-size: 13px;
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.registro-info strong {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.registro-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.registro-actions .btn {
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 8px 12px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .registro-item {
+        flex-direction: column;
+    }
+    
+    .registro-actions {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .registro-actions .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+/* Container para botões do modal */
+.modal-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Botões full-width no modal */
+.btn-full {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+/* Botão Primary */
+.btn.btn-primary.btn-full {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn.btn-primary.btn-full:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn.btn-primary.btn-full:active {
+    transform: translateY(0);
+}
+
+/* Botão Secondary */
+.btn.btn-secondary.btn-full {
+    background: #f0f0f0;
+    color: #333;
+    border: 2px solid #ddd;
+}
+
+.btn.btn-secondary.btn-full:hover {
+    background: #e8e8e8;
+    border-color: #bbb;
+    transform: translateY(-2px);
+}
+
+.btn.btn-secondary.btn-full:active {
+    transform: translateY(0);
+}
+
+/* Atualizar estilo do card de registro */
+.registro-item {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.registro-info {
+    flex: 1;
+    text-align: left;
+}
+
+.registro-info h4 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 16px;
+    word-break: break-word;
+}
+
+.registro-info p {
+    color: #666;
+    font-size: 13px;
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.registro-info strong {
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .modal-buttons-container {
+        gap: 10px;
+    }
+    
+    .btn-full {
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+    
+    .registro-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
