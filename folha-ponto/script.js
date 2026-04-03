@@ -1,6 +1,6 @@
 /**
  * SCONT - Sistema de Gestão de Ponto e Folha de Pagamento
- * Arquivo: script.js (VERSÃO v7.0 - COM AUTENTICAÇÃO SUPABASE)
+ * Arquivo: script.js (VERSÃO v7.1 - COM AUTENTICAÇÃO SUPABASE CORRIGIDA)
  * Descrição: Autenticação, persistência, cálculos e auditoria
  * Data: 04/2026
  */
@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         // Usuário não autenticado
         console.log('⚠️ Usuário não autenticado');
+        inicializarEventos();
         mostrarTela('loginScreen');
     }
     
@@ -73,7 +74,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.usuarioEmail = session.user.email;
             
             inicializarComSupabase();
-            inicializarEventos();
             atualizarHeaderAcoes();
             mostrarTela('initialScreen');
         } else if (event === 'SIGNED_OUT') {
@@ -91,17 +91,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================
 async function handleLogin(e) {
     e.preventDefault();
+    console.log('🔄 Função handleLogin chamada');
     
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     
+    console.log('Email:', email);
+    console.log('Senha:', password ? '***' : 'vazia');
+    
     if (!email || !password) {
+        console.error('❌ Email ou senha vazios');
         mostrarMensagem('Erro', 'Preencha email e senha.');
         return;
     }
     
     try {
-        console.log('🔄 Tentando login...');
+        console.log('🔄 Tentando login com:', email);
         
         const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
@@ -115,6 +120,7 @@ async function handleLogin(e) {
         }
         
         console.log('✅ Login bem-sucedido!');
+        console.log('Usuário:', data.user.email);
         document.getElementById('loginForm').reset();
         
     } catch (erro) {
@@ -169,7 +175,7 @@ async function handleRegistro(e) {
         }
         
         console.log('✅ Conta criada com sucesso!');
-        mostrarMensagem('Sucesso', 'Conta criada! Verifique seu email para confirmar.');
+        mostrarMensagem('Sucesso', 'Conta criada! Você pode fazer login agora.');
         
         document.getElementById('registroForm').reset();
         
@@ -529,36 +535,120 @@ function iniciarNovoPreenchimento(competencia, codigoEmpresa) {
 // ============================================
 
 function inicializarEventos() {
+    console.log('🔄 Inicializando eventos...');
+    
     // Eventos de autenticação
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('registroForm').addEventListener('submit', handleRegistro);
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        console.log('✅ Formulário de login encontrado');
+        loginForm.addEventListener('submit', handleLogin);
+    } else {
+        console.error('❌ Formulário de login NÃO encontrado');
+    }
+    
+    const registroForm = document.getElementById('registroForm');
+    if (registroForm) {
+        console.log('✅ Formulário de registro encontrado');
+        registroForm.addEventListener('submit', handleRegistro);
+    } else {
+        console.error('❌ Formulário de registro NÃO encontrado');
+    }
     
     // Eventos principais
-    document.getElementById('initialForm').addEventListener('submit', handleCarregarFolhaComPersistencia);
-    document.getElementById('addTabBtn').addEventListener('click', adicionarNovaFolha);
-    document.getElementById('openFeriadosBtn').addEventListener('click', abrirModalFeriados);
-    document.getElementById('addFeriadoBtn').addEventListener('click', adicionarFeriado);
-    document.getElementById('closeFeriadosBtn').addEventListener('click', fecharModalFeriados);
-    document.querySelector('.modal-close').addEventListener('click', fecharModalFeriados);
-    document.getElementById('processBtn').addEventListener('click', processarFolhaComSalvamento);
-    document.getElementById('resetBtn').addEventListener('click', resetarDadosComSupabase);
-    document.getElementById('exportXlsxBtn').addEventListener('click', exportarParaCSVeSupabase);
-    document.getElementById('backToEditBtn').addEventListener('click', voltarParaEdicao);
-    document.getElementById('messageOk').addEventListener('click', fecharModalMensagem);
-    document.getElementById('confirmYes').addEventListener('click', confirmarAcao);
-    document.getElementById('confirmNo').addEventListener('click', fecharModalConfirmacao);
-    document.getElementById('competencia').addEventListener('input', (e) => {
-        e.target.value = formatarCompetencia(e.target.value);
-    });
-    document.getElementById('jornada').addEventListener('input', (e) => {
-        e.target.value = formatarHora(e.target.value);
-    });
-    document.getElementById('novaDataFeriado').addEventListener('input', (e) => {
-        e.target.value = formatarData(e.target.value);
-    });
-    document.getElementById('ruleExtra100Optional').addEventListener('change', (e) => {
-        state.ruleExtra100Optional = e.target.checked;
-    });
+    const initialForm = document.getElementById('initialForm');
+    if (initialForm) {
+        initialForm.addEventListener('submit', handleCarregarFolhaComPersistencia);
+    }
+    
+    const addTabBtn = document.getElementById('addTabBtn');
+    if (addTabBtn) {
+        addTabBtn.addEventListener('click', adicionarNovaFolha);
+    }
+    
+    const openFeriadosBtn = document.getElementById('openFeriadosBtn');
+    if (openFeriadosBtn) {
+        openFeriadosBtn.addEventListener('click', abrirModalFeriados);
+    }
+    
+    const addFeriadoBtn = document.getElementById('addFeriadoBtn');
+    if (addFeriadoBtn) {
+        addFeriadoBtn.addEventListener('click', adicionarFeriado);
+    }
+    
+    const closeFeriadosBtn = document.getElementById('closeFeriadosBtn');
+    if (closeFeriadosBtn) {
+        closeFeriadosBtn.addEventListener('click', fecharModalFeriados);
+    }
+    
+    const modalClose = document.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', fecharModalFeriados);
+    }
+    
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) {
+        processBtn.addEventListener('click', processarFolhaComSalvamento);
+    }
+    
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetarDadosComSupabase);
+    }
+    
+    const exportXlsxBtn = document.getElementById('exportXlsxBtn');
+    if (exportXlsxBtn) {
+        exportXlsxBtn.addEventListener('click', exportarParaCSVeSupabase);
+    }
+    
+    const backToEditBtn = document.getElementById('backToEditBtn');
+    if (backToEditBtn) {
+        backToEditBtn.addEventListener('click', voltarParaEdicao);
+    }
+    
+    const messageOk = document.getElementById('messageOk');
+    if (messageOk) {
+        messageOk.addEventListener('click', fecharModalMensagem);
+    }
+    
+    const confirmYes = document.getElementById('confirmYes');
+    if (confirmYes) {
+        confirmYes.addEventListener('click', confirmarAcao);
+    }
+    
+    const confirmNo = document.getElementById('confirmNo');
+    if (confirmNo) {
+        confirmNo.addEventListener('click', fecharModalConfirmacao);
+    }
+    
+    const competencia = document.getElementById('competencia');
+    if (competencia) {
+        competencia.addEventListener('input', (e) => {
+            e.target.value = formatarCompetencia(e.target.value);
+        });
+    }
+    
+    const jornada = document.getElementById('jornada');
+    if (jornada) {
+        jornada.addEventListener('input', (e) => {
+            e.target.value = formatarHora(e.target.value);
+        });
+    }
+    
+    const novaDataFeriado = document.getElementById('novaDataFeriado');
+    if (novaDataFeriado) {
+        novaDataFeriado.addEventListener('input', (e) => {
+            e.target.value = formatarData(e.target.value);
+        });
+    }
+    
+    const ruleExtra100Optional = document.getElementById('ruleExtra100Optional');
+    if (ruleExtra100Optional) {
+        ruleExtra100Optional.addEventListener('change', (e) => {
+            state.ruleExtra100Optional = e.target.checked;
+        });
+    }
+    
+    console.log('✅ Eventos inicializados');
 }
 
 // ============================================
