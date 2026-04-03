@@ -1,29 +1,29 @@
 /**
  * SCONT - Sistema de Gestão de Ponto e Folha de Pagamento
- * Arquivo: script.js (VERSÃO FINAL v9.0)
+ * Arquivo: script.js (VERSÃO FINAL v9.1 - CORRIGIDA)
  * Descrição: Autenticação, persistência, cálculos e auditoria
  * Data: 04/2026
  */
 
 // ============================================
-// AGUARDAR SUPABASE CARREGAR
+// AGUARDAR SUPABASE E XLSX CARREGAREM
 // ============================================
-console.log('⏳ Aguardando Supabase carregar...');
+console.log('⏳ Aguardando bibliotecas carregarem...');
 
 let tentativas = 0;
-const aguardarSupabase = setInterval(() => {
+const aguardarBibliotecas = setInterval(() => {
     tentativas++;
     
-    if (typeof supabase !== 'undefined') {
-        console.log('✅ Supabase carregado com sucesso');
-        clearInterval(aguardarSupabase);
+    if (typeof supabase !== 'undefined' && typeof XLSX !== 'undefined') {
+        console.log('✅ Todas as bibliotecas carregadas com sucesso');
+        clearInterval(aguardarBibliotecas);
         inicializarSistema();
-    } else if (tentativas > 50) {
-        console.error('❌ Timeout ao carregar Supabase');
-        clearInterval(aguardarSupabase);
+    } else if (tentativas > 100) {
+        console.error('❌ Timeout ao carregar bibliotecas');
+        clearInterval(aguardarBibliotecas);
         alert('Erro ao carregar o sistema. Recarregue a página.');
     }
-}, 100);
+}, 50);
 
 // ============================================
 // INICIALIZAR SISTEMA
@@ -70,20 +70,26 @@ async function inicializarSistema() {
     // ============================================
     // VERIFICAR AUTENTICAÇÃO
     // ============================================
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    
-    if (user) {
-        state.usuarioAutenticado = true;
-        state.usuarioId = user.id;
-        state.usuarioEmail = user.email;
-        console.log('✅ Usuário autenticado:', user.email);
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
         
-        inicializarComSupabase();
-        inicializarEventos();
-        atualizarHeaderAcoes();
-        mostrarTela('selectionScreen');
-    } else {
-        console.log('⚠️ Usuário não autenticado');
+        if (user) {
+            state.usuarioAutenticado = true;
+            state.usuarioId = user.id;
+            state.usuarioEmail = user.email;
+            console.log('✅ Usuário autenticado:', user.email);
+            
+            inicializarComSupabase();
+            inicializarEventos();
+            atualizarHeaderAcoes();
+            mostrarTela('selectionScreen');
+        } else {
+            console.log('⚠️ Usuário não autenticado');
+            inicializarEventos();
+            mostrarTela('loginScreen');
+        }
+    } catch (erro) {
+        console.error('❌ Erro ao verificar autenticação:', erro);
         inicializarEventos();
         mostrarTela('loginScreen');
     }
@@ -459,6 +465,8 @@ async function salvarFolhaNoSupabase() {
         const nomeUsuario = user?.user_metadata?.nome || user?.email || 'Sistema';
         
         for (const folha of state.folhas) {
+            if (!folha.nomeTrabalhador) continue;
+            
             const saveRecord = {
                 usuario_id: state.usuarioId,
                 empresa_codigo: state.codigoEmpresa,
@@ -535,10 +543,6 @@ function pararAutoSave() {
         persistenceState.autoSaveInterval = null;
     }
 }
-
-
-
-
 
 // ============================================
 // CARREGAMENTO DE PREENCHIMENTOS ANTERIORES
@@ -1049,7 +1053,6 @@ function renderizarConteudoAba() {
     const header = document.createElement('div');
     header.className = 'tab-content-header';
     
-    // ✅ CRIAR DROPBOX DE EMPREGADOS
     const empregadosJaSelecionados = state.folhas
         .map((f, idx) => idx !== state.abaSelecionada ? f.nomeTrabalhador : null)
         .filter(n => n);
@@ -1066,7 +1069,6 @@ function renderizarConteudoAba() {
         optionsHTML += `<option value="${emp.nome}" ${selected}>${emp.codigo} - ${emp.nome}</option>`;
     });
     
-    // ✅ SE JÁ SELECIONADO, MANTER NA LISTA
     if (folha.nomeTrabalhador && !empregadosParaSelect.find(e => e.nome === folha.nomeTrabalhador)) {
         const empSelecionado = empregadosDisponiveis.find(e => e.nome === folha.nomeTrabalhador);
         if (empSelecionado) {
@@ -1129,14 +1131,6 @@ function renderizarConteudoAba() {
     tableWrapper.appendChild(table);
     tabsContent.appendChild(tableWrapper);
 }
-
-
-
-
-
-
-
-
 
 // ============================================
 // GERENCIAMENTO DE FERIADOS
@@ -1579,7 +1573,7 @@ function renderizarTabelasDiarias() {
 
 async function exportarParaExcel() {
     try {
-        mostrarMensagem('Processando', 'Gerando arquivo Excel e enviando para servidor...');
+        mostrarMensagem('Processando', 'Gerando arquivo Excel...');
         
         const workbook = XLSX.utils.book_new();
         
