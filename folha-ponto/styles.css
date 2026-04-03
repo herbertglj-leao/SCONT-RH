@@ -40,7 +40,7 @@ body {
 .header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: white;
-    padding: 20px 0;
+    padding: 15px 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     position: sticky;
     top: 0;
@@ -56,6 +56,7 @@ body {
     gap: 30px;
 }
 
+/* ✅ LOGO DESTACADO */
 .logo {
     max-width: 120px;
     height: auto;
@@ -66,25 +67,29 @@ body {
     padding: 15px;
     border-radius: 12px;
 }
+
 .header-info {
     flex: 1;
 }
 
 .header-info h1 {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     margin-bottom: 5px;
+    letter-spacing: 0.5px;
 }
 
 .header-subtitle {
     font-size: 13px;
-    opacity: 0.9;
+    opacity: 0.95;
+    font-weight: 500;
 }
 
 .header-actions {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-left: auto;
 }
 
 /* ============================================
@@ -174,7 +179,8 @@ body {
     font-size: 13px;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -182,7 +188,8 @@ body {
     transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(139, 58, 58, 0.1);
@@ -821,16 +828,6 @@ tbody tr.dsr {
 .registro-info strong {
     color: var(--primary-color);
     font-weight: 600;
-}
-
-.feriados-list {
-    margin-top: 20px;
-}
-
-.feriados-list h4 {
-    color: var(--text-primary);
-    margin-bottom: 15px;
-    font-size: 14px;
 }
 
 /* ============================================
