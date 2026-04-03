@@ -1,6 +1,6 @@
 /**
  * SCONT - Sistema de Gestão de Ponto e Folha de Pagamento
- * Arquivo: script.js (VERSÃO FINAL v8.0)
+ * Arquivo: script.js (VERSÃO v7.1 - COM AUTENTICAÇÃO SUPABASE CORRIGIDA)
  * Descrição: Autenticação, persistência, cálculos e auditoria
  * Data: 04/2026
  */
@@ -43,9 +43,11 @@ const persistenceState = {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando sistema...');
     
+    // Verificar se usuário está autenticado
     const { data: { user } } = await supabaseClient.auth.getUser();
     
     if (user) {
+        // Usuário autenticado
         state.usuarioAutenticado = true;
         state.usuarioId = user.id;
         state.usuarioEmail = user.email;
@@ -56,11 +58,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         atualizarHeaderAcoes();
         mostrarTela('initialScreen');
     } else {
+        // Usuário não autenticado
         console.log('⚠️ Usuário não autenticado');
         inicializarEventos();
         mostrarTela('loginScreen');
     }
     
+    // Monitorar mudanças de autenticação
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('🔐 Evento de autenticação:', event);
         
@@ -77,12 +81,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.usuarioId = null;
             state.usuarioEmail = null;
             pararAutoSave();
-            
-            const headerActions = document.getElementById('headerActions');
-            if (headerActions) {
-                headerActions.innerHTML = '';
-            }
-            
             mostrarTela('loginScreen');
         }
     });
@@ -97,6 +95,9 @@ async function handleLogin(e) {
     
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
+    
+    console.log('Email:', email);
+    console.log('Senha:', password ? '***' : 'vazia');
     
     if (!email || !password) {
         console.error('❌ Email ou senha vazios');
@@ -119,6 +120,7 @@ async function handleLogin(e) {
         }
         
         console.log('✅ Login bem-sucedido!');
+        console.log('Usuário:', data.user.email);
         document.getElementById('loginForm').reset();
         
     } catch (erro) {
@@ -173,7 +175,7 @@ async function handleRegistro(e) {
         }
         
         console.log('✅ Conta criada com sucesso!');
-        mostrarMensagem('Sucesso', 'Conta criada! Você pode fazer login agora.');
+        mostrarMensagem('Sucesso', 'Conta criada! Confirme seu email através do link encaminhado para sua conta.');
         
         document.getElementById('registroForm').reset();
         
@@ -188,7 +190,7 @@ async function handleRegistro(e) {
 }
 
 // ============================================
-// AUTENTICAÇÃO - LOGOUT
+// AUTENTICAÇÃO - LOGOUT (CORRIGIDO)
 // ============================================
 async function fazerLogout() {
     mostrarConfirmacao(
@@ -198,6 +200,7 @@ async function fazerLogout() {
             try {
                 console.log('🔄 Iniciando logout...');
                 
+                // Fazer logout no Supabase
                 const { error } = await supabaseClient.auth.signOut();
                 
                 if (error) {
@@ -208,6 +211,7 @@ async function fazerLogout() {
                 
                 console.log('✅ Logout realizado com sucesso');
                 
+                // Limpar estado global
                 state.usuarioAutenticado = false;
                 state.usuarioId = null;
                 state.usuarioEmail = null;
@@ -216,20 +220,25 @@ async function fazerLogout() {
                 state.competencia = '';
                 state.codigoEmpresa = '';
                 
+                // Parar auto-save
                 pararAutoSave();
                 
+                // Limpar header
                 const headerActions = document.getElementById('headerActions');
                 if (headerActions) {
                     headerActions.innerHTML = '';
                 }
                 
+                // Limpar formulário inicial
                 const initialForm = document.getElementById('initialForm');
                 if (initialForm) {
                     initialForm.reset();
                 }
                 
+                // Mostrar tela de login
                 mostrarTela('loginScreen');
                 
+                // Limpar campos de login
                 const loginForm = document.getElementById('loginForm');
                 if (loginForm) {
                     loginForm.reset();
@@ -244,7 +253,6 @@ async function fazerLogout() {
         }
     );
 }
-
 // ============================================
 // NAVEGAÇÃO - TELAS DE LOGIN
 // ============================================
@@ -317,6 +325,7 @@ async function salvarFolhaNoSupabase() {
     persistenceState.saveInProgress = true;
     
     try {
+        // Obter dados do usuário autenticado
         const { data: { user } } = await supabaseClient.auth.getUser();
         const nomeUsuario = user?.user_metadata?.nome || user?.email || 'Sistema';
         
@@ -335,7 +344,7 @@ async function salvarFolhaNoSupabase() {
                 status: 'em_preenchimento',
                 criado_por: state.usuarioId,
                 atualizado_por: state.usuarioId,
-                nome_usuario: nomeUsuario
+                nome_usuario: nomeUsuario  // ✅ ADICIONADO
             };
             
             try {
@@ -378,7 +387,6 @@ async function salvarFolhaNoSupabase() {
         persistenceState.saveInProgress = false;
     }
 }
-
 function iniciarAutoSave() {
     if (persistenceState.autoSaveInterval) {
         clearInterval(persistenceState.autoSaveInterval);
@@ -398,105 +406,6 @@ function pararAutoSave() {
     }
 }
 
-
-// ============================================
-// CARREGAR EMPRESAS E EMPREGADOS
-// ============================================
-
-async function carregarEmpresasDropbox() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('empresas')
-            .select('codigo_empresa, nome_empresa')
-            .order('nome_empresa', { ascending: true });
-        
-        if (error) throw error;
-        
-        const select = document.getElementById('codigoEmpresa');
-        select.innerHTML = '<option value="">Selecione uma empresa...</option>';
-        
-        (data || []).forEach(empresa => {
-            const option = document.createElement('option');
-            option.value = empresa.codigo_empresa;
-            option.textContent = `${empresa.codigo_empresa} - ${empresa.nome_empresa}`;
-            select.appendChild(option);
-        });
-        
-        console.log('✅ Empresas carregadas:', data?.length || 0);
-        
-    } catch (erro) {
-        console.error('❌ Erro ao carregar empresas:', erro);
-    }
-}
-
-async function carregarEmpregadosDropbox(codigoEmpresa) {
-    try {
-        if (!codigoEmpresa) {
-            document.getElementById('nomeTrabalhador').innerHTML = '<option value="">Selecione uma empresa primeiro</option>';
-            return;
-        }
-        
-        const { data, error } = await supabaseClient
-            .from('empregados')
-            .select('codigo_empregado, nome_empregado')
-            .eq('codigo_empresa', codigoEmpresa)
-            .order('nome_empregado', { ascending: true });
-        
-        if (error) throw error;
-        
-        const select = document.getElementById('nomeTrabalhador');
-        select.innerHTML = '<option value="">Selecione um empregado...</option>';
-        
-        (data || []).forEach(empregado => {
-            const option = document.createElement('option');
-            option.value = empregado.nome_empregado;
-            option.textContent = `${empregado.codigo_empregado} - ${empregado.nome_empregado}`;
-            select.appendChild(option);
-        });
-        
-        console.log('✅ Empregados carregados:', data?.length || 0);
-        
-    } catch (erro) {
-        console.error('❌ Erro ao carregar empregados:', erro);
-    }
-}
-
-// Chamar ao inicializar
-function inicializarComSupabase() {
-    console.log('🔄 Inicializando persistência com Supabase...');
-    
-    carregarEmpresasDropbox();
-    
-    const codigoEmpresaSelect = document.getElementById('codigoEmpresa');
-    if (codigoEmpresaSelect) {
-        codigoEmpresaSelect.addEventListener('change', (e) => {
-            carregarEmpregadosDropbox(e.target.value);
-        });
-    }
-    
-    try {
-        const { data, error } = await supabaseClient
-            .from('saves')
-            .select('count', { count: 'exact', head: true });
-        
-        if (error) {
-            console.warn('⚠️ Supabase indisponível.');
-            return;
-        }
-        
-        console.log('✅ Supabase conectado com sucesso');
-        iniciarAutoSave();
-        
-    } catch (erro) {
-        console.error('❌ Erro ao inicializar Supabase:', erro);
-    }
-}
-
-
-// ============================================
-// CARREGAMENTO DE PREENCHIMENTOS ANTERIORES
-// ============================================
-
 async function carregarPreenchimentosAnteriores() {
     try {
         const competencia = document.getElementById('competencia').value.trim();
@@ -511,6 +420,7 @@ async function carregarPreenchimentosAnteriores() {
         console.log('Empresa:', codigoEmpresa);
         console.log('Competência:', competencia);
         
+        // ✅ BUSCAR TODAS AS FOLHAS DA EMPRESA/COMPETÊNCIA (DE QUALQUER USUÁRIO)
         const { data: registros, error } = await supabaseClient
             .from('saves')
             .select('*')
@@ -524,7 +434,7 @@ async function carregarPreenchimentosAnteriores() {
             throw error;
         }
         
-        console.log('📋 Registros encontrados (total):', registros?.length || 0);
+        console.log('📋 Registros encontrados:', registros?.length || 0);
         
         if (!registros || registros.length === 0) {
             console.log('ℹ️ Nenhum preenchimento anterior encontrado.');
@@ -532,21 +442,13 @@ async function carregarPreenchimentosAnteriores() {
             return;
         }
         
-        const ultimasVersoes = filtrarUltimasVersoes(registros);
-        
-        console.log('📋 Últimas versões encontradas:', ultimasVersoes.length);
-        
-        if (ultimasVersoes.length === 0) {
-            console.log('ℹ️ Nenhuma versão válida encontrada.');
-            iniciarNovoPreenchimento(competencia, codigoEmpresa);
-            return;
-        }
-        
-        const agrupado = agruparPreenchimentos(ultimasVersoes);
+        // ✅ AGRUPAR POR DATA/USUÁRIO PARA EXIBIÇÃO
+        const agrupado = agruparPreenchimentos(registros);
         
         console.log('📊 Grupos encontrados:', agrupado.length);
         
-        mostrarModalPreenchimentosAnterioresAgrupado(agrupado, competencia, codigoEmpresa, ultimasVersoes);
+        // ✅ MOSTRAR MODAL COM OPÇÃO DE CARREGAR TODOS
+        mostrarModalPreenchimentosAnterioresAgrupado(agrupado, competencia, codigoEmpresa, registros);
         
     } catch (erro) {
         console.error('❌ Erro ao carregar preenchimentos:', erro);
@@ -554,28 +456,7 @@ async function carregarPreenchimentosAnteriores() {
     }
 }
 
-// ✅ FUNÇÃO: Filtrar apenas a última versão de cada empregado
-function filtrarUltimasVersoes(registros) {
-    const mapa = {};
-    
-    const ordenados = registros.sort((a, b) => {
-        return new Date(b.data_atualizacao) - new Date(a.data_atualizacao);
-    });
-    
-    ordenados.forEach(registro => {
-        const chaveEmpregado = `${registro.nome_trabalhador}`;
-        
-        if (!mapa[chaveEmpregado]) {
-            mapa[chaveEmpregado] = registro;
-            console.log(`✅ Última versão de ${registro.nome_trabalhador}: ${new Date(registro.data_atualizacao).toLocaleString('pt-BR')}`);
-        } else {
-            console.log(`⏭️ Ignorando versão anterior de ${registro.nome_trabalhador}`);
-        }
-    });
-    
-    return Object.values(mapa);
-}
-
+// ✅ NOVA FUNÇÃO: Agrupar preenchimentos
 // ✅ FUNÇÃO: Agrupar preenchimentos por data/usuário
 function agruparPreenchimentos(registros) {
     const agrupado = {};
@@ -583,6 +464,7 @@ function agruparPreenchimentos(registros) {
     registros.forEach(registro => {
         const dataFormatada = new Date(registro.data_atualizacao).toLocaleString('pt-BR');
         
+        // ✅ USAR NOME DO USUÁRIO OU EMAIL COMO CHAVE
         const nomeAutor = registro.nome_usuario || registro.atualizado_por || 'Sistema';
         const chave = `${nomeAutor}_${dataFormatada}`;
         
@@ -602,11 +484,13 @@ function agruparPreenchimentos(registros) {
     return Object.values(agrupado);
 }
 
+// ✅ NOVA FUNÇÃO: Modal com preenchimentos agrupados
 function mostrarModalPreenchimentosAnterioresAgrupado(agrupados, competencia, codigoEmpresa, todosRegistros) {
     const modal = document.createElement('div');
     modal.id = 'preenchimentosAnterioresModal';
     modal.className = 'modal active';
     
+    // ✅ CONTAR TOTAL DE FOLHAS
     const totalFolhas = todosRegistros.length;
     
     modal.innerHTML = `
@@ -617,11 +501,9 @@ function mostrarModalPreenchimentosAnterioresAgrupado(agrupados, competencia, co
             </div>
             <div class="modal-body">
                 <p>Preenchimentos encontrados para <strong>${codigoEmpresa}</strong> - <strong>${competencia}</strong>:</p>
-                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
-                    ℹ️ Mostrando apenas a última versão de cada empregado
-                </p>
                 <div id="preenchimentosList" class="registros-list"></div>
                 
+                <!-- ✅ BOTÕES REORGANIZADOS -->
                 <div class="modal-buttons-container">
                     <button type="button" class="btn btn-primary btn-full" onclick="carregarTodosPreenchimentos('${codigoEmpresa}', '${competencia}')">
                         ▶️ Carregar Preenchimento
@@ -638,16 +520,19 @@ function mostrarModalPreenchimentosAnterioresAgrupado(agrupados, competencia, co
     
     const lista = document.getElementById('preenchimentosList');
     
+    // ✅ MOSTRAR CADA GRUPO COM INFORMAÇÕES DO AUTOR
     agrupados.forEach((grupo, index) => {
         const item = document.createElement('div');
         item.className = 'registro-item';
         
+        // Listar empregados do grupo
         const empregadosLista = grupo.empregados
             .map(e => e.nome_trabalhador)
             .join(', ');
         
         const totalFolhasGrupo = grupo.empregados.length;
         
+        // ✅ MOSTRAR INFORMAÇÕES COMPLETAS DO AUTOR
         item.innerHTML = `
             <div class="registro-info">
                 <h4>📁 Folhas: ${empregadosLista}</h4>
@@ -659,28 +544,23 @@ function mostrarModalPreenchimentosAnterioresAgrupado(agrupados, competencia, co
         lista.appendChild(item);
     });
 }
-
-function fecharModalPreenchimentos() {
-    const modal = document.getElementById('preenchimentosAnterioresModal');
-    if (modal) {
-        modal.classList.remove('active');
-        setTimeout(() => modal.remove(), 300);
-    }
-}
-
+// ✅ NOVA FUNÇÃO: Carregar todas as folhas de uma vez
+// ✅ NOVA FUNÇÃO: Carregar TODAS as folhas de uma empresa/competência
+// ✅ FUNÇÃO: Carregar TODAS as folhas de uma empresa/competência
 async function carregarTodosPreenchimentos(codigoEmpresa, competencia) {
     try {
-        console.log('🔄 Carregando TODAS as folhas (últimas versões)...');
+        console.log('🔄 Carregando TODAS as folhas...');
         console.log('Empresa:', codigoEmpresa);
         console.log('Competência:', competencia);
         
+        // ✅ BUSCAR TODAS AS FOLHAS DA EMPRESA/COMPETÊNCIA (DE QUALQUER USUÁRIO)
         const { data: registros, error } = await supabaseClient
             .from('saves')
             .select('*')
             .eq('empresa_codigo', codigoEmpresa)
             .eq('competencia', competencia)
             .eq('status', 'em_preenchimento')
-            .order('data_atualizacao', { ascending: false });
+            .order('nome_trabalhador', { ascending: true });
         
         if (error) {
             console.error('❌ Erro ao buscar folhas:', error);
@@ -692,13 +572,13 @@ async function carregarTodosPreenchimentos(codigoEmpresa, competencia) {
             return;
         }
         
-        const ultimasVersoes = filtrarUltimasVersoes(registros);
+        console.log('📋 Total de folhas a carregar:', registros.length);
         
-        console.log('📋 Total de folhas a carregar (últimas versões):', ultimasVersoes.length);
-        
+        // ✅ LIMPAR FOLHAS ANTERIORES
         state.folhas = [];
         
-        ultimasVersoes.forEach((registro, index) => {
+        // ✅ CARREGAR CADA FOLHA
+        registros.forEach((registro, index) => {
             try {
                 const folhaRestaurada = {
                     id: parseInt(registro.folha_id),
@@ -708,19 +588,21 @@ async function carregarTodosPreenchimentos(codigoEmpresa, competencia) {
                 };
                 
                 state.folhas.push(folhaRestaurada);
-                console.log(`✅ Folha ${index + 1}/${ultimasVersoes.length} carregada: ${registro.nome_trabalhador} (Autor: ${folhaRestaurada.autorUltimaMod})`);
+                console.log(`✅ Folha ${index + 1}/${registros.length} carregada: ${registro.nome_trabalhador} (Autor: ${folhaRestaurada.autorUltimaMod})`);
             } catch (erro) {
                 console.error(`❌ Erro ao carregar folha ${index + 1}:`, erro);
             }
         });
         
-        const primeiroRegistro = ultimasVersoes[0];
+        // ✅ ATUALIZAR CONFIGURAÇÕES GLOBAIS (DO PRIMEIRO REGISTRO)
+        const primeiroRegistro = registros[0];
         state.competencia = primeiroRegistro.competencia;
         state.codigoEmpresa = primeiroRegistro.empresa_codigo;
         state.jornada = primeiroRegistro.jornada || '08:00';
         state.ruleExtra100Optional = primeiroRegistro.rule_extra_100_opcional || false;
         state.feriados = JSON.parse(primeiroRegistro.feriados_json || '[]');
         
+        // ✅ ATUALIZAR CAMPOS DE CONFIGURAÇÃO NA INTERFACE
         const jornadaInput = document.getElementById('jornada');
         if (jornadaInput) {
             jornadaInput.value = state.jornada;
@@ -731,27 +613,102 @@ async function carregarTodosPreenchimentos(codigoEmpresa, competencia) {
             ruleCheckbox.checked = state.ruleExtra100Optional;
         }
         
+        // ✅ DEFINIR PRIMEIRA ABA COMO SELECIONADA
         state.abaSelecionada = 0;
         
+        // ✅ FECHAR MODAL
         fecharModalPreenchimentos();
         
+        // ✅ MOSTRAR TELA PRINCIPAL
         mostrarTela('mainScreen');
         
+        // ✅ RENDERIZAR INTERFACE
         renderizarAbas();
         renderizarConteudoAba();
         renderizarTabelaFeriados();
         
-        console.log(`✅ ${ultimasVersoes.length} folhas carregadas com sucesso!`);
+        console.log(`✅ ${registros.length} folhas carregadas com sucesso!`);
         
-        const autores = [...new Set(ultimasVersoes.map(r => r.nome_usuario || r.atualizado_por || 'Sistema'))];
-        mostrarMensagem('Sucesso', `${ultimasVersoes.length} folhas carregadas com sucesso!\n\nEmpregados: ${ultimasVersoes.map(r => r.nome_trabalhador).join(', ')}\n\nAutor(es): ${autores.join(', ')}`);
+        // ✅ MOSTRAR MENSAGEM COM DETALHES
+        const autores = [...new Set(registros.map(r => r.nome_usuario || r.atualizado_por || 'Sistema'))];
+        mostrarMensagem('Sucesso', `${registros.length} folhas carregadas com sucesso!\n\nEmpregados: ${registros.map(r => r.nome_trabalhador).join(', ')}\n\nAutor(es): ${autores.join(', ')}`);
         
+        // ✅ INICIAR AUTO-SAVE
         iniciarAutoSave();
         
     } catch (erro) {
         console.error('❌ Erro ao carregar preenchimentos:', erro);
         mostrarMensagem('Erro', 'Erro ao carregar preenchimentos. Tente novamente.');
     }
+}
+
+function mostrarModalPreenchimentosAnteriores(registros, competencia, codigoEmpresa) {
+    const modal = document.createElement('div');
+    modal.id = 'preenchimentosAnterioresModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 Preenchimentos Anteriores</h3>
+                <button type="button" class="modal-close" onclick="fecharModalPreenchimentos()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Preenchimentos encontrados para <strong>${codigoEmpresa}</strong> - <strong>${competencia}</strong>:</p>
+                <div id="preenchimentosList" class="registros-list"></div>
+                <button type="button" class="btn btn-secondary" onclick="iniciarNovoPreenchimento('${competencia}', '${codigoEmpresa}')" style="width: 100%; margin-top: 15px;">
+                    ➕ Novo Preenchimento
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const lista = document.getElementById('preenchimentosList');
+    registros.forEach((registro, index) => {
+        const item = document.createElement('div');
+        item.className = 'registro-item';
+        
+        const dataFormatada = new Date(registro.data_atualizacao).toLocaleString('pt-BR');
+        const percentual = calcularPercentualPreenchimento(JSON.parse(registro.dados_json));
+        
+        item.innerHTML = `
+            <div class="registro-info">
+                <h4>${registro.nome_trabalhador}</h4>
+                <p>Atualizado por: ${registro.atualizado_por || 'Sistema'}</p>
+                <p>Data: ${dataFormatada}</p>
+                <p>Preenchimento: ${percentual}%</p>
+            </div>
+            <button type="button" class="btn btn-primary btn-small" onclick="carregarPreenchimentoAnterior(${registro.id})">
+                ▶️ Carregar
+            </button>
+        `;
+        lista.appendChild(item);
+    });
+}
+
+
+function fecharModalPreenchimentos() {
+    const modal = document.getElementById('preenchimentosAnterioresModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+function calcularPercentualPreenchimento(dados) {
+    let totalCampos = 0;
+    let camposPreenchidos = 0;
+    
+    Object.values(dados).forEach(dia => {
+        totalCampos += 4;
+        if (dia.entrada1) camposPreenchidos++;
+        if (dia.saida1) camposPreenchidos++;
+        if (dia.entrada2) camposPreenchidos++;
+        if (dia.saida2) camposPreenchidos++;
+    });
+    
+    return totalCampos > 0 ? Math.round((camposPreenchidos / totalCampos) * 100) : 0;
 }
 
 function iniciarNovoPreenchimento(competencia, codigoEmpresa) {
@@ -776,6 +733,7 @@ function iniciarNovoPreenchimento(competencia, codigoEmpresa) {
 function inicializarEventos() {
     console.log('🔄 Inicializando eventos...');
     
+    // Eventos de autenticação
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         console.log('✅ Formulário de login encontrado');
@@ -792,6 +750,7 @@ function inicializarEventos() {
         console.error('❌ Formulário de registro NÃO encontrado');
     }
     
+    // Eventos principais
     const initialForm = document.getElementById('initialForm');
     if (initialForm) {
         initialForm.addEventListener('submit', handleCarregarFolhaComPersistencia);
@@ -834,7 +793,7 @@ function inicializarEventos() {
     
     const exportXlsxBtn = document.getElementById('exportXlsxBtn');
     if (exportXlsxBtn) {
-        exportXlsxBtn.addEventListener('click', exportarParaExcel);
+        exportXlsxBtn.addEventListener('click', exportarParaCSVeSupabase);
     }
     
     const backToEditBtn = document.getElementById('backToEditBtn');
@@ -882,7 +841,6 @@ function inicializarEventos() {
     if (ruleExtra100Optional) {
         ruleExtra100Optional.addEventListener('change', (e) => {
             state.ruleExtra100Optional = e.target.checked;
-            console.log('✅ Regra 100% (2ª Extra) alterada para:', state.ruleExtra100Optional);
         });
     }
     
@@ -996,6 +954,7 @@ function renderizarConteudoAba() {
     const inputNome = header.querySelector('#nomeTrabalhador');
     inputNome.addEventListener('input', (e) => {
         folha.nomeTrabalhador = e.target.value;
+        console.log('Nome atualizado:', folha.nomeTrabalhador);
         renderizarAbas();
     });
     inputNome.addEventListener('change', (e) => {
@@ -1030,6 +989,7 @@ function renderizarConteudoAba() {
             input.addEventListener('change', (e) => {
                 const campos = ['entrada1', 'saida1', 'entrada2', 'saida2'];
                 dados[campos[idx]] = e.target.value;
+                console.log(data + ' - ' + campos[idx] + ': ' + e.target.value);
             });
         });
         tbody.appendChild(row);
@@ -1244,8 +1204,10 @@ function calcularFolha(folha) {
         const entrada2 = converterHoraParaMinutos(dados.entrada2);
         const saida2 = converterHoraParaMinutos(dados.saida2);
         
+        // Calcular horas trabalhadas
         const horasTrabalhadas = calcularHorasTrabalhadas(entrada1, saida1) + calcularHorasTrabalhadas(entrada2, saida2);
         
+        // Se não há trabalho, pular
         if (horasTrabalhadas === 0) {
             continue;
         }
@@ -1255,53 +1217,74 @@ function calcularFolha(folha) {
         console.log('  Período 2: ' + dados.entrada2 + ' a ' + dados.saida2 + ' = ' + converterMinutosParaHora(calcularHorasTrabalhadas(entrada2, saida2)));
         console.log('  Total Trabalhadas: ' + converterMinutosParaHora(horasTrabalhadas));
         
+        // ✅ CÁLCULO DE HORAS NOTURNAS
         const horasNoturnaReais = calcularHorasNoturnas(entrada1, saida1, entrada2, saida2);
         const horasNoturnaConvertida = calcularHorasNoturnaConvertida(horasNoturnaReais);
         
         console.log('  Noturnas Reais: ' + converterMinutosParaHora(horasNoturnaReais));
         console.log('  Noturnas Convertidas: ' + converterMinutosParaHora(horasNoturnaConvertida));
         
+        // ✅ CÁLCULO CORRETO DE HORAS EXTRAS COM PRIORIDADES
         let horasExtras50 = 0;
         let horasExtras100Geral = 0;
         let horasExtras100Opcional = 0;
         
+        // ✅ USAR HORAS NOTURNAS CONVERTIDAS PARA CÁLCULO DE EXTRAS
         const horasTrabalhadasAjustadas = horasTrabalhadas + (horasNoturnaConvertida - horasNoturnaReais);
         const horasExtrasTotais = Math.max(0, horasTrabalhadasAjustadas - jornada);
         
         console.log('  Horas Trabalhadas (com noturnas convertidas): ' + converterMinutosParaHora(horasTrabalhadasAjustadas));
         console.log('  Horas Extras Totais: ' + converterMinutosParaHora(horasExtrasTotais));
         
+        // ============================================
+        // PRIORIDADE 1: FERIADO OU DSR
+        // ============================================
         if (isFeriado || isDSR) {
             horasExtras100Geral = horasTrabalhadas;
             console.log('  ⚠️ FERIADO/DSR: Todas as ' + converterMinutosParaHora(horasTrabalhadas) + ' são 100%');
         } 
+        // ============================================
+        // PRIORIDADE 2: DIA NORMAL COM REGRA 100% OPCIONAL
+        // ============================================
         else if (state.ruleExtra100Optional && horasExtrasTotais > 0) {
-            const duasHoras = 2 * 60;
+            // ✅ REGRA CORRIGIDA:
+            // - Primeiras 2 horas extras = 50%
+            // - A partir da 3ª hora extra = 100%
+            
+            const duasHoras = 2 * 60;  // 2 horas em minutos
             
             if (horasExtrasTotais <= duasHoras) {
+                // Apenas até 2 horas extras
                 horasExtras50 = horasExtrasTotais;
                 console.log('  ✅ Regra 100% ATIVADA (A partir da 3ª hora)');
                 console.log('     Extra 50% (até 2h): ' + converterMinutosParaHora(horasExtras50));
             } else {
-                horasExtras50 = duasHoras;
-                horasExtras100Opcional = horasExtrasTotais - duasHoras;
+                // Mais de 2 horas extras
+                horasExtras50 = duasHoras;  // Primeiras 2 horas = 50%
+                horasExtras100Opcional = horasExtrasTotais - duasHoras;  // Restante = 100%
                 console.log('  ✅ Regra 100% ATIVADA (A partir da 3ª hora)');
                 console.log('     Extra 50% (até 2h): ' + converterMinutosParaHora(horasExtras50));
                 console.log('     Extra 100% (a partir 3ª): ' + converterMinutosParaHora(horasExtras100Opcional));
             }
         }
+        // ============================================
+        // PRIORIDADE 3: DIA NORMAL SEM REGRA OPCIONAL
+        // ============================================
         else {
+            // Padrão: todas as extras são 50%
             horasExtras50 = horasExtrasTotais;
             console.log('  ℹ️ Regra 100% DESATIVADA');
             console.log('     Extra 50%: ' + converterMinutosParaHora(horasExtras50));
         }
         
+        // ✅ CALCULAR HORAS DEVIDAS USANDO HORAS CONVERTIDAS
         const horasDevidas = Math.max(0, jornada - horasTrabalhadasAjustadas);
         
         if (horasDevidas > 0) {
             console.log('  ⏱️ Horas Devidas: ' + converterMinutosParaHora(horasDevidas));
         }
         
+        // Acumular no consolidado
         resultado.consolidado.horasTrabalhadas += horasTrabalhadas;
         resultado.consolidado.horasExtras50 += horasExtras50;
         resultado.consolidado.horasExtras100Geral += horasExtras100Geral;
@@ -1310,6 +1293,7 @@ function calcularFolha(folha) {
         resultado.consolidado.horasNoturnaConvertida += horasNoturnaConvertida;
         resultado.consolidado.horasDevidas += horasDevidas;
         
+        // Adicionar ao array de dias
         resultado.dias.push({
             data,
             diaSemana,
@@ -1343,7 +1327,6 @@ function calcularFolha(folha) {
     
     return resultado;
 }
-
 function converterHoraParaMinutos(hora) {
     if (!hora || hora.trim() === '') return 0;
     const [h, m] = hora.split(':').map(Number);
@@ -1357,15 +1340,17 @@ function converterMinutosParaHora(minutos) {
 }
 
 function calcularHorasNoturnas(entrada1, saida1, entrada2, saida2) {
-    const inicioNoturno = 22 * 60;
-    const fimNoturno = 5 * 60;
+    const inicioNoturno = 22 * 60;  // 22:00 = 1320 minutos
+    const fimNoturno = 5 * 60;      // 05:00 = 300 minutos
     
     let minutosNoturnos = 0;
     
+    // Período 1
     if (entrada1 > 0 && saida1 > 0) {
         minutosNoturnos += calcularMinutosNoturnoPeriodo(entrada1, saida1, inicioNoturno, fimNoturno);
     }
     
+    // Período 2
     if (entrada2 > 0 && saida2 > 0) {
         minutosNoturnos += calcularMinutosNoturnoPeriodo(entrada2, saida2, inicioNoturno, fimNoturno);
     }
@@ -1375,29 +1360,50 @@ function calcularHorasNoturnas(entrada1, saida1, entrada2, saida2) {
     return minutosNoturnos;
 }
 
+/**
+ * Calcula minutos noturnos em um período específico
+ * @param {number} entrada - Minutos desde 00:00
+ * @param {number} saida - Minutos desde 00:00
+ * @param {number} inicioNoturno - 22:00 em minutos (1320)
+ * @param {number} fimNoturno - 05:00 em minutos (300)
+ * @returns {number} Minutos noturnos
+ */
 function calcularMinutosNoturnoPeriodo(entrada, saida, inicioNoturno, fimNoturno) {
     let minutosNoturnos = 0;
     
+    // Se saída < entrada, significa que passou da meia-noite
     if (saida < entrada) {
+        // Trabalhou até depois da meia-noite
+        // Parte 1: De entrada até 23:59 (se entrada >= 22:00)
         if (entrada >= inicioNoturno) {
-            minutosNoturnos += (24 * 60) - entrada;
+            minutosNoturnos += (24 * 60) - entrada;  // Até meia-noite
         }
         
+        // Parte 2: De 00:00 até saída (se saída <= 05:00)
         if (saida <= fimNoturno) {
-            minutosNoturnos += saida;
+            minutosNoturnos += saida;  // Desde meia-noite
         } else {
-            minutosNoturnos += fimNoturno;
+            minutosNoturnos += fimNoturno;  // Até 05:00
         }
     } else {
+        // Trabalhou no mesmo dia
+        // Verificar se há sobreposição com período noturno
+        
+        // Caso 1: Período noturno normal (22:00 a 05:00 do dia seguinte)
         if (entrada < inicioNoturno && saida > inicioNoturno) {
+            // Entrada antes de 22:00, saída depois de 22:00
             minutosNoturnos += saida - inicioNoturno;
         } else if (entrada >= inicioNoturno && saida >= inicioNoturno) {
+            // Ambos após 22:00
             minutosNoturnos += saida - entrada;
         }
         
+        // Caso 2: Período madrugada (00:00 a 05:00)
         if (entrada < fimNoturno && saida > entrada) {
+            // Entrada antes de 05:00, saída depois
             minutosNoturnos += Math.min(saida, fimNoturno) - entrada;
         } else if (entrada < fimNoturno && saida >= fimNoturno) {
+            // Entrada antes de 05:00, saída depois de 05:00
             minutosNoturnos += fimNoturno - entrada;
         }
     }
@@ -1405,7 +1411,16 @@ function calcularMinutosNoturnoPeriodo(entrada, saida, inicioNoturno, fimNoturno
     return Math.max(0, minutosNoturnos);
 }
 
+
+function intersecaoMinutos(inicioA, fimA, inicioB, fimB) {
+    const inicio = Math.max(inicioA, inicioB);
+    const fim = Math.min(fimA, fimB);
+    return Math.max(0, fim - inicio);
+}
+
 function calcularHorasNoturnaConvertida(minutosNoturnos) {
+    // Conversão: 1 hora noturna = 52,5 minutos
+    // Logo: minutos reais / 0,875 = minutos convertidos
     const minutosConvertidos = Math.round(minutosNoturnos / 0.875);
     
     console.log('    → Minutos noturnos convertidos: ' + minutosConvertidos + ' min (' + converterMinutosParaHora(minutosConvertidos) + ')');
@@ -1435,11 +1450,7 @@ function renderizarConsolidado() {
         html += '<div class="metric-item trabalhadas"><div class="metric-label">Horas Trabalhadas</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasTrabalhadas) + '</div></div>';
         html += '<div class="metric-item extras50"><div class="metric-label">Extras 50%</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasExtras50) + '</div></div>';
         html += '<div class="metric-item extras100"><div class="metric-label">Extras 100% (Feriado)</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasExtras100Geral) + '</div></div>';
-        
-        if (consolidado.horasExtras100Opcional > 0) {
-            html += '<div class="metric-item extras100"><div class="metric-label">Extras 100% (2ª Hora)</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasExtras100Opcional) + '</div></div>';
-        }
-        
+        html += '<div class="metric-item extras100"><div class="metric-label">Extras 100% (Opcional)</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasExtras100Opcional) + '</div></div>';
         html += '<div class="metric-item noturnas"><div class="metric-label">Not. Reais</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasNoturnaReais) + '</div></div>';
         html += '<div class="metric-item noturnas"><div class="metric-label">Not. Convertida</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasNoturnaConvertida) + '</div></div>';
         html += '<div class="metric-item devidas"><div class="metric-label">Horas Devidas</div><div class="metric-value">' + converterMinutosParaHora(consolidado.horasDevidas) + '</div></div>';
@@ -1482,22 +1493,27 @@ function renderizarTabelasDiarias() {
 }
 
 // ============================================
-// EXPORTAÇÃO PARA EXCEL
+// EXPORTAÇÃO PARA CSV E UPLOAD PARA SUPABASE
 // ============================================
 
-async function exportarParaExcel() {
+async function exportarParaCSVeSupabase() {
     try {
         mostrarMensagem('Processando', 'Gerando arquivo Excel e enviando para servidor...');
         
+        // ✅ CRIAR WORKBOOK
         const workbook = XLSX.utils.book_new();
         
         console.log('📊 Gerando arquivo Excel com ' + state.resultados.length + ' abas...');
         
+        // ============================================
+        // PASSO 1: CRIAR ABA PARA CADA EMPREGADO
+        // ============================================
         state.resultados.forEach((resultado, indexResultado) => {
             console.log(`\n📄 Criando aba: ${resultado.nomeTrabalhador}`);
             
             const dados = [];
             
+            // ✅ CABEÇALHO
             dados.push([
                 'FOLHA DE PONTO',
                 '',
@@ -1524,8 +1540,9 @@ async function exportarParaExcel() {
                 '',
                 ''
             ]);
-            dados.push([]);
+            dados.push([]);  // Linha vazia
             
+            // ✅ CABEÇALHO DA TABELA
             dados.push([
                 'DATA',
                 'DIA',
@@ -1540,6 +1557,7 @@ async function exportarParaExcel() {
                 'NOT. CONV.'
             ]);
             
+            // ✅ DETALHAMENTO DIÁRIO
             resultado.dias.forEach(dia => {
                 const totalExtras100 = dia.horasExtras100Geral + dia.horasExtras100Opcional;
                 
@@ -1558,8 +1576,10 @@ async function exportarParaExcel() {
                 ]);
             });
             
+            // ✅ LINHA VAZIA
             dados.push([]);
             
+            // ✅ CONSOLIDADO MENSAL
             dados.push(['CONSOLIDADO DO MÊS']);
             dados.push([
                 'DESCRIÇÃO',
@@ -1596,29 +1616,36 @@ async function exportarParaExcel() {
                 converterMinutosParaHora(consolidado.horasDevidas)
             ]);
             
+            // ✅ CRIAR WORKSHEET
             const worksheet = XLSX.utils.aoa_to_sheet(dados);
             
+            // ✅ AJUSTAR LARGURA DAS COLUNAS
             worksheet['!cols'] = [
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 14 },
-                { wch: 14 },
-                { wch: 14 },
-                { wch: 14 },
-                { wch: 14 }
+                { wch: 12 },  // DATA
+                { wch: 12 },  // DIA
+                { wch: 12 },  // ENTRADA 1
+                { wch: 12 },  // SAIDA 1
+                { wch: 12 },  // ENTRADA 2
+                { wch: 12 },  // SAIDA 2
+                { wch: 14 },  // TRABALHADAS
+                { wch: 14 },  // EXTRAS 50%
+                { wch: 14 },  // EXTRAS 100%
+                { wch: 14 },  // NOT. REAIS
+                { wch: 14 }   // NOT. CONV.
             ];
             
+            // ✅ ADICIONAR WORKSHEET AO WORKBOOK
             XLSX.utils.book_append_sheet(workbook, worksheet, resultado.nomeTrabalhador);
         });
         
+        // ============================================
+        // PASSO 2: CRIAR ABA DE CONSOLIDADO GERAL
+        // ============================================
         console.log('\n📊 Criando aba de consolidado geral...');
         
         const dadosConsolidado = [];
         
+        // ✅ CABEÇALHO
         dadosConsolidado.push([
             'CONSOLIDADO MENSAL GERAL',
             '',
@@ -1645,8 +1672,9 @@ async function exportarParaExcel() {
             '',
             ''
         ]);
-        dadosConsolidado.push([]);
+        dadosConsolidado.push([]);  // Linha vazia
         
+        // ✅ CABEÇALHO DA TABELA
         dadosConsolidado.push([
             'EMPREGADO',
             'TRABALHADAS',
@@ -1658,6 +1686,7 @@ async function exportarParaExcel() {
             'HORAS DEVIDAS'
         ]);
         
+        // ✅ DADOS DE CADA EMPREGADO
         state.resultados.forEach(resultado => {
             const consolidado = resultado.consolidado;
             
@@ -1673,6 +1702,7 @@ async function exportarParaExcel() {
             ]);
         });
         
+        // ✅ TOTAIS
         dadosConsolidado.push([]);
         dadosConsolidado.push(['TOTAIS']);
         
@@ -1706,26 +1736,35 @@ async function exportarParaExcel() {
             converterMinutosParaHora(totalDevidas)
         ]);
         
+        // ✅ CRIAR WORKSHEET
         const worksheetConsolidado = XLSX.utils.aoa_to_sheet(dadosConsolidado);
         
+        // ✅ AJUSTAR LARGURA DAS COLUNAS
         worksheetConsolidado['!cols'] = [
-            { wch: 20 },
-            { wch: 14 },
-            { wch: 14 },
-            { wch: 18 },
-            { wch: 18 },
-            { wch: 14 },
-            { wch: 14 },
-            { wch: 14 }
+            { wch: 20 },  // EMPREGADO
+            { wch: 14 },  // TRABALHADAS
+            { wch: 14 },  // EXTRAS 50%
+            { wch: 18 },  // EXTRAS 100% (Feriado)
+            { wch: 18 },  // EXTRAS 100% (2ª Hora)
+            { wch: 14 },  // NOT. REAIS
+            { wch: 14 },  // NOT. CONV.
+            { wch: 14 }   // HORAS DEVIDAS
         ];
         
+        // ✅ ADICIONAR WORKSHEET AO WORKBOOK
         XLSX.utils.book_append_sheet(workbook, worksheetConsolidado, 'Consolidado Geral');
         
+        // ============================================
+        // PASSO 3: GERAR E BAIXAR ARQUIVO
+        // ============================================
         const nomeArquivo = `Folha_Ponto_${state.codigoEmpresa}_${state.competencia.replace('/', '_')}_${Date.now()}.xlsx`;
         
         console.log('💾 Gerando arquivo: ' + nomeArquivo);
         XLSX.writeFile(workbook, nomeArquivo);
         
+        // ============================================
+        // PASSO 4: SALVAR NO SUPABASE (OPCIONAL)
+        // ============================================
         try {
             const { error: updateError } = await supabaseClient
                 .from('saves')
@@ -1733,6 +1772,7 @@ async function exportarParaExcel() {
                     data_exportacao: new Date().toISOString(),
                     status: 'processado'
                 })
+                .eq('usuario_id', state.usuarioId)
                 .eq('empresa_codigo', state.codigoEmpresa)
                 .eq('competencia', state.competencia);
             
@@ -1751,6 +1791,27 @@ async function exportarParaExcel() {
     } catch (erro) {
         console.error('❌ Erro ao exportar:', erro);
         mostrarMensagem('Erro', 'Erro ao exportar arquivo: ' + erro.message);
+    }
+}
+
+function salvarCSVLocalmente(csv, nomeArquivo) {
+    try {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', nomeArquivo);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        mostrarMensagem('Sucesso', 'Arquivo exportado localmente (Supabase indisponível)');
+    } catch (erro) {
+        console.error('❌ Erro ao salvar localmente:', erro);
+        mostrarMensagem('Erro', 'Erro ao exportar arquivo.');
     }
 }
 
@@ -1779,6 +1840,7 @@ async function resetarDadosComSupabase() {
                     await supabaseClient
                         .from('saves')
                         .update({ status: 'deletado' })
+                        .eq('usuario_id', state.usuarioId)
                         .eq('empresa_codigo', state.codigoEmpresa)
                         .eq('competencia', state.competencia);
                 }
@@ -1858,6 +1920,8 @@ function formatarData(valor) {
         return apenasDigitos.substring(0, 2) + '/' + apenasDigitos.substring(2, 4) + '/' + apenasDigitos.substring(4, 8);
     }
 }
+
+
 
 // ============================================
 // SALVAMENTO AO SAIR
