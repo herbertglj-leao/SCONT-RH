@@ -9,7 +9,7 @@
         .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .admin-header { background: linear-gradient(135deg, #8B3A3A 0%, #6B2A2A 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
         .admin-header h1 { margin: 0; font-size: 28px; }
-        .admin-tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #E0E0E0; }
+        .admin-tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #E0E0E0; flex-wrap: wrap; }
         .admin-tab-btn { padding: 12px 20px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #7F8C8D; transition: all 0.3s ease; }
         .admin-tab-btn:hover { color: #8B3A3A; }
         .admin-tab-btn.active { color: #8B3A3A; border-bottom-color: #8B3A3A; }
@@ -32,8 +32,6 @@
         .admin-table tbody tr:hover { background: #F5F5F5; }
         .btn-delete { background: #E74C3C; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.3s ease; }
         .btn-delete:hover { background: #C0392B; }
-        .btn-edit { background: #3498DB; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px; transition: all 0.3s ease; }
-        .btn-edit:hover { background: #2980B9; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #2C3E50; font-size: 13px; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #E0E0E0; border-radius: 6px; font-size: 13px; }
@@ -54,7 +52,7 @@
             <img src="https://scontdf.com.br/wp-content/uploads/elementor/thumbs/LogoScont-peic298y16fua1mv1zkur66kgxw0v6rzhu846yyg3k.png" alt="SCONT" class="logo">
             <div class="header-info">
                 <h1>SCONT - Administração</h1>
-                <div class="header-subtitle">Gestão de Empresas, Empregados e Rubricas</div>
+                <div class="header-subtitle">Gestão de Empresas, Empregados, Rubricas e Regras</div>
             </div>
             <div class="header-actions">
                 <button type="button" class="btn btn-small" onclick="voltarParaPonto()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
@@ -70,6 +68,7 @@
             <button type="button" class="admin-tab-btn active" onclick="abrirAba('empresas')">🏢 Empresas</button>
             <button type="button" class="admin-tab-btn" onclick="abrirAba('empregados')">👥 Empregados</button>
             <button type="button" class="admin-tab-btn" onclick="abrirAba('rubricas')">🏷️ Rubricas</button>
+            <button type="button" class="admin-tab-btn" onclick="abrirAba('regrasRenomeacao')">🔄 Renomear Arquivos</button>
             <button type="button" class="admin-tab-btn" onclick="abrirAba('importar')">📥 Importar Dados</button>
         </div>
 
@@ -135,7 +134,7 @@
             </div>
         </div>
 
-        <!-- ✅ NOVA ABA: RUBRICAS -->
+        <!-- ABA RUBRICAS -->
         <div id="rubricas" class="admin-tab-content">
             <div class="admin-section">
                 <h2>Gerenciar Rubricas para Exportação (TXT)</h2>
@@ -175,6 +174,53 @@
             </div>
         </div>
 
+        <!-- ABA REGRAS DE RENOMEAÇÃO -->
+        <div id="regrasRenomeacao" class="admin-tab-content">
+            <div class="admin-section">
+                <h2>Regras de Renomeação de Arquivos</h2>
+                <div id="statusRegras" class="status-message"></div>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #2C3E50; margin-bottom: 15px;">Cadastrar Nova Regra</h3>
+                    
+                    <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;">
+                        <p><strong>Tags Disponíveis:</strong></p>
+                        <p>Use estas tags exatamente como estão escritas (com as chaves) para criar os padrões.</p>
+                        <ul style="margin-top: 5px; padding-left: 20px; color: #666;">
+                            <li><code>{CODIGO_EMPRESA}</code> : Extrai o código (DE) ou insere o código (PARA).</li>
+                            <li><code>{NOME_EMPRESA}</code> : Insere o nome da empresa (apenas no PARA).</li>
+                            <li><code>{NOME_ARQUIVO}</code> : Extrai o nome original (DE) ou insere o nome (PARA).</li>
+                            <li><code>{MM}</code> : Mês da competência (2 dígitos).</li>
+                            <li><code>{AAAA}</code> : Ano da competência (4 dígitos).</li>
+                            <li><code>{IGNORAR}</code> : Ignora uma parte do texto original (apenas no DE).</li>
+                        </ul>
+                        <p style="margin-top: 10px;"><strong>Exemplo DE:</strong> <code>{CODIGO_EMPRESA}_{NOME_ARQUIVO}_{IGNORAR}_{MM}{AAAA}</code></p>
+                        <p><strong>Exemplo PARA:</strong> <code>{NOME_ARQUIVO}_{NOME_EMPRESA}_{AAAA}_{MM}</code></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="padraoDe">Padrão DE (Formato Original do Arquivo) *</label>
+                        <input type="text" id="padraoDe" placeholder="Ex: {CODIGO_EMPRESA}_{NOME_ARQUIVO}_{MM}{AAAA}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="padraoPara">Padrão PARA (Novo Formato do Arquivo) *</label>
+                        <input type="text" id="padraoPara" placeholder="Ex: {NOME_ARQUIVO}_{NOME_EMPRESA}_{AAAA}_{MM}" required>
+                    </div>
+                    
+                    <button type="button" class="btn-save" onclick="adicionarRegra()">➕ Salvar Regra</button>
+                </div>
+
+                <h3 style="color: #2C3E50; margin-bottom: 15px;">Regras Cadastradas</h3>
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead><tr><th>Padrão DE</th><th>Padrão PARA</th><th>Ações</th></tr></thead>
+                        <tbody id="regrasTableBody"><tr><td colspan="3" style="text-align: center; color: #95A5A6;">Carregando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- ABA IMPORTAR -->
         <div id="importar" class="admin-tab-content">
             <div class="admin-section">
@@ -183,12 +229,13 @@
                 <div style="margin-bottom: 30px;">
                     <h3 style="color: #2C3E50; margin-bottom: 15px;">Instruções</h3>
                     <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
-                        <p><strong>Sua planilha deve conter:</strong></p>
+                        <p><strong>Sua planilha deve conter as seguintes abas:</strong></p>
                         <ul style="margin: 10px 0; padding-left: 20px;">
                             <li><strong>Aba "Empresas":</strong> Coluna A = Código da Empresa, Coluna B = Nome da Empresa</li>
                             <li><strong>Aba "Empregados":</strong> Coluna A = Código da Empresa, Coluna B = Código do Empregado, Coluna C = Nome do Empregado</li>
+                            <li><strong>Aba "Rubricas":</strong> Coluna A = Código da Empresa, Coluna B = Código da Rubrica, Coluna C = Nome do Evento (ex: horasTrabalhadas, horasExtras50, horasExtras100, horasNoturnaConvertida, horasDevidas)</li>
                         </ul>
-                        <p style="margin-top: 15px; color: #E74C3C;"><strong>⚠️ Aviso:</strong> A importação irá <strong>substituir</strong> todos os dados existentes!</p>
+                        <p style="margin-top: 15px; color: #E74C3C;"><strong>⚠️ Aviso:</strong> A importação irá <strong>substituir</strong> todos os dados existentes (Empresas, Empregados e Rubricas)!</p>
                     </div>
                 </div>
                 <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -238,7 +285,8 @@
             }
             carregarEmpresas();
             carregarEmpregados();
-            carregarRubricas(); // ✅ Carregar rubricas na inicialização
+            carregarRubricas();
+            carregarRegras(); // Carrega as regras de renomeação
             configurarUpload();
         });
 
@@ -271,7 +319,7 @@
 
         function atualizarSelectEmpresas(empresas) {
             const selectEmp = document.getElementById('empresaSelect');
-            const selectRub = document.getElementById('rubricaEmpresaSelect'); // ✅ Atualizar select de rubricas também
+            const selectRub = document.getElementById('rubricaEmpresaSelect');
             const options = '<option value="">Selecione uma empresa...</option>' + empresas.map(e => `<option value="${e.codigo_empresa}">${e.codigo_empresa} - ${e.nome_empresa}</option>`).join('');
             selectEmp.innerHTML = options;
             selectRub.innerHTML = options;
@@ -343,11 +391,11 @@
             } catch (erro) { mostrarStatus('statusEmpregados', 'Erro ao deletar empregado: ' + erro.message, 'error'); }
         }
 
-        // --- ✅ RUBRICAS ---
+        // --- RUBRICAS ---
         const nomesEventos = {
             'horasTrabalhadas': 'Horas Trabalhadas',
             'horasExtras50': 'Horas Extras 50%',
-            'horasExtras100': 'Horas Extras 100%', // ✅ UNIFICADO
+            'horasExtras100': 'Horas Extras 100%',
             'horasNoturnaConvertida': 'Horas Noturnas Convertidas',
             'horasDevidas': 'Horas Devidas (Faltas/Atrasos)'
         };
@@ -378,7 +426,6 @@
             if (!codigoEmpresa || !evento || !codigoRubrica) { mostrarStatus('statusRubricas', 'Preencha todos os campos', 'error'); return; }
             
             try {
-                // Upsert (Update if exists, Insert if not) based on unique constraint (codigo_empresa, evento)
                 const { error } = await supabaseClient.from('rubricas').upsert([{ 
                     codigo_empresa: codigoEmpresa, 
                     evento: evento, 
@@ -403,104 +450,7 @@
             } catch (erro) { mostrarStatus('statusRubricas', 'Erro ao deletar rubrica: ' + erro.message, 'error'); }
         }
 
-        // --- IMPORTAÇÃO ---
-        function configurarUpload() {
-            const uploadArea = document.getElementById('uploadArea');
-            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-            uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
-            uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); const files = e.dataTransfer.files; if (files.length > 0) processarArquivo(files[0]); });
-        }
-
-        function handleFileSelect(event) { const files = event.target.files; if (files.length > 0) processarArquivo(files[0]); }
-
-               async function processarArquivo(file) {
-            try {
-                mostrarStatus('statusImportar', 'Lendo arquivo...', 'info'); 
-                document.getElementById('importProgress').style.display = 'block';
-                
-                const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-                
-                // 1. Processar aba de empresas
-                const empresasSheet = workbook.Sheets['Empresas']; 
-                if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
-                const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { header: ['codigo_empresa', 'nome_empresa'], defval: '' }).filter(row => row.codigo_empresa && row.nome_empresa);
-                
-                // 2. Processar aba de empregados
-                const empregadosSheet = workbook.Sheets['Empregados']; 
-                if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
-                const empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado);
-                
-                // 3. Processar aba de rubricas (NOVO)
-                const rubricasSheet = workbook.Sheets['Rubricas'];
-                let rubricasData = [];
-                if (rubricasSheet) {
-                    rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { header: ['codigo_empresa', 'codigo_rubrica', 'evento'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento);
-                } else {
-                    console.warn('Aba "Rubricas" não encontrada na planilha. Importando apenas Empresas e Empregados.');
-                }
-                
-                // Limpar dados existentes
-                mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); 
-                document.getElementById('progressBar').style.width = '20%';
-                
-                // A ordem de deleção importa por causa das chaves estrangeiras (Foreign Keys)
-                await supabaseClient.from('rubricas').delete().neq('id', 0);
-                await supabaseClient.from('empregados').delete().neq('id', 0); 
-                await supabaseClient.from('empresas').delete().neq('id', 0);
-                
-                // Inserir empresas
-                mostrarStatus('statusImportar', 'Importando empresas...', 'info'); 
-                document.getElementById('progressBar').style.width = '40%';
-                if (empresasData.length > 0) { 
-                    const { error } = await supabaseClient.from('empresas').insert(empresasData); 
-                    if (error) throw error; 
-                }
-                
-                // Inserir empregados
-                mostrarStatus('statusImportar', 'Importando empregados...', 'info'); 
-                document.getElementById('progressBar').style.width = '60%';
-                if (empregadosData.length > 0) { 
-                    const { error } = await supabaseClient.from('empregados').insert(empregadosData); 
-                    if (error) throw error; 
-                }
-                
-                // Inserir rubricas (NOVO)
-                mostrarStatus('statusImportar', 'Importando rubricas...', 'info'); 
-                document.getElementById('progressBar').style.width = '80%';
-                if (rubricasData.length > 0) { 
-                    const { error } = await supabaseClient.from('rubricas').insert(rubricasData); 
-                    if (error) throw error; 
-                }
-                
-                document.getElementById('progressBar').style.width = '100%';
-                setTimeout(() => {
-                    document.getElementById('importProgress').style.display = 'none';
-                    mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas, ${empregadosData.length} empregados e ${rubricasData.length} rubricas.`, 'success');
-                    
-                    // Recarregar as tabelas na tela
-                    carregarEmpresas(); 
-                    carregarEmpregados(); 
-                    carregarRubricas(); 
-                    
-                    document.getElementById('fileInput').value = '';
-                }, 1000);
-                
-            } catch (erro) { 
-                document.getElementById('importProgress').style.display = 'none'; 
-                mostrarStatus('statusImportar', 'Erro ao importar: ' + erro.message, 'error'); 
-            }
-        }
-        // --- UTILITÁRIOS ---
-        function mostrarStatus(elementId, mensagem, tipo) { const el = document.getElementById(elementId); el.textContent = mensagem; el.className = 'status-message ' + tipo; }
-        function mostrarMensagem(titulo, mensagem) { document.getElementById('messageTitle').textContent = titulo; document.getElementById('messageText').textContent = mensagem; document.getElementById('messageModal').classList.add('active'); }
-        function fecharModalMensagem() { document.getElementById('messageModal').classList.remove('active'); }
-        function voltarParaPonto() { window.location.href = './index.html'; }
-
-     // --- ✅ REGRAS DE RENOMEAÇÃO ---
-        
-        // Adicione esta chamada na inicialização (dentro do DOMContentLoaded):
-        // carregarRegras();
-
+        // --- REGRAS DE RENOMEAÇÃO ---
         async function carregarRegras() {
             try {
                 const { data, error } = await supabaseClient.from('regras_renomeacao').select('*').order('data_criacao', { ascending: false });
@@ -548,6 +498,95 @@
                 carregarRegras();
             } catch (erro) { mostrarStatus('statusRegras', 'Erro ao deletar regra: ' + erro.message, 'error'); }
         }
+
+        // --- IMPORTAÇÃO ---
+        function configurarUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+            uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
+            uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); const files = e.dataTransfer.files; if (files.length > 0) processarArquivo(files[0]); });
+        }
+
+        function handleFileSelect(event) { const files = event.target.files; if (files.length > 0) processarArquivo(files[0]); }
+
+        async function processarArquivo(file) {
+            try {
+                mostrarStatus('statusImportar', 'Lendo arquivo...', 'info'); 
+                document.getElementById('importProgress').style.display = 'block';
+                
+                const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                
+                // 1. Processar aba de empresas
+                const empresasSheet = workbook.Sheets['Empresas']; 
+                if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
+                const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { header: ['codigo_empresa', 'nome_empresa'], defval: '' }).filter(row => row.codigo_empresa && row.nome_empresa);
+                
+                // 2. Processar aba de empregados
+                const empregadosSheet = workbook.Sheets['Empregados']; 
+                if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
+                const empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado);
+                
+                // 3. Processar aba de rubricas
+                const rubricasSheet = workbook.Sheets['Rubricas'];
+                let rubricasData = [];
+                if (rubricasSheet) {
+                    rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { header: ['codigo_empresa', 'codigo_rubrica', 'evento'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento);
+                } else {
+                    console.warn('Aba "Rubricas" não encontrada na planilha. Importando apenas Empresas e Empregados.');
+                }
+                
+                mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); 
+                document.getElementById('progressBar').style.width = '20%';
+                
+                // A ordem de deleção importa por causa das chaves estrangeiras
+                await supabaseClient.from('rubricas').delete().neq('id', 0);
+                await supabaseClient.from('empregados').delete().neq('id', 0); 
+                await supabaseClient.from('empresas').delete().neq('id', 0);
+                
+                mostrarStatus('statusImportar', 'Importando empresas...', 'info'); 
+                document.getElementById('progressBar').style.width = '40%';
+                if (empresasData.length > 0) { 
+                    const { error } = await supabaseClient.from('empresas').insert(empresasData); 
+                    if (error) throw error; 
+                }
+                
+                mostrarStatus('statusImportar', 'Importando empregados...', 'info'); 
+                document.getElementById('progressBar').style.width = '60%';
+                if (empregadosData.length > 0) { 
+                    const { error } = await supabaseClient.from('empregados').insert(empregadosData); 
+                    if (error) throw error; 
+                }
+                
+                mostrarStatus('statusImportar', 'Importando rubricas...', 'info'); 
+                document.getElementById('progressBar').style.width = '80%';
+                if (rubricasData.length > 0) { 
+                    const { error } = await supabaseClient.from('rubricas').insert(rubricasData); 
+                    if (error) throw error; 
+                }
+                
+                document.getElementById('progressBar').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('importProgress').style.display = 'none';
+                    mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas, ${empregadosData.length} empregados e ${rubricasData.length} rubricas.`, 'success');
+                    
+                    carregarEmpresas(); 
+                    carregarEmpregados(); 
+                    carregarRubricas(); 
+                    
+                    document.getElementById('fileInput').value = '';
+                }, 1000);
+                
+            } catch (erro) { 
+                document.getElementById('importProgress').style.display = 'none'; 
+                mostrarStatus('statusImportar', 'Erro ao importar: ' + erro.message, 'error'); 
+            }
+        }
+
+        // --- UTILITÁRIOS ---
+        function mostrarStatus(elementId, mensagem, tipo) { const el = document.getElementById(elementId); el.textContent = mensagem; el.className = 'status-message ' + tipo; }
+        function mostrarMensagem(titulo, mensagem) { document.getElementById('messageTitle').textContent = titulo; document.getElementById('messageText').textContent = mensagem; document.getElementById('messageModal').classList.add('active'); }
+        function fecharModalMensagem() { document.getElementById('messageModal').classList.remove('active'); }
+        function voltarParaPonto() { window.location.href = './index.html'; }
     </script>
 </body>
 </html>
