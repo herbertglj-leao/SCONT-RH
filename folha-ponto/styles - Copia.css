@@ -954,27 +954,3 @@ tbody tr.dsr {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--secondary-color);
 }
-
-/* ESTILOS PARA CHECKBOX LIST (Modal Exportação TXT) */
-.checkbox-list-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px;
-    border-bottom: 1px solid var(--border-color);
-}
-.checkbox-list-item:last-child {
-    border-bottom: none;
-}
-.checkbox-list-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    cursor: pointer;
-}
-.checkbox-list-item label {
-    margin: 0;
-    font-size: 13px;
-    cursor: pointer;
-    color: var(--text-primary);
-}
