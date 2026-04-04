@@ -234,21 +234,38 @@
         </div>
     </div>
 
-    <!-- MODAL DE MENSAGEM -->
+        <!-- MODAL DE MENSAGEM -->
     <div id="messageModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h3 id="messageTitle">Mensagem</h3><button type="button" class="modal-close" onclick="fecharModalMensagem()">×</button></div>
-            <div class="modal-body"><p id="messageText"></p></div>
-            <div class="modal-footer"><button type="button" class="btn btn-primary" id="messageOk">OK</button></div>
+            <div class="modal-header">
+                <h3 id="messageTitle">Mensagem</h3>
+                <button type="button" class="modal-close" onclick="fecharModalMensagem()">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="messageText"></p>
+            </div>
+            <div class="modal-footer">
+                <!-- ✅ CORREÇÃO: Adicionado onclick="fecharModalMensagem()" -->
+                <button type="button" class="btn btn-primary" id="messageOk" onclick="fecharModalMensagem()">OK</button>
+            </div>
         </div>
     </div>
 
     <!-- MODAL DE CONFIRMAÇÃO -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h3 id="confirmTitle">Confirmação</h3><button type="button" class="modal-close" onclick="fecharModalConfirmacao()">×</button></div>
-            <div class="modal-body"><p id="confirmMessage"></p></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" id="confirmNo">Cancelar</button><button type="button" class="btn btn-primary" id="confirmYes">Confirmar</button></div>
+            <div class="modal-header">
+                <h3 id="confirmTitle">Confirmação</h3>
+                <button type="button" class="modal-close" onclick="fecharModalConfirmacao()">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <!-- ✅ CORREÇÃO: Adicionado onclick nos botões Cancelar e Confirmar -->
+                <button type="button" class="btn btn-secondary" id="confirmNo" onclick="fecharModalConfirmacao()">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmYes" onclick="confirmarAcao()">Confirmar</button>
+            </div>
         </div>
     </div>
 
