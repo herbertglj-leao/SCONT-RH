@@ -28,25 +28,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     carregarEmpresas();
 });
 
-// --- FUNÇÕES DE INTERFACE ---
+// --- FUNÇÕES DE INTERFACE E UTILITÁRIOS ---
 
 function mostrarMensagem(titulo, mensagem) {
     document.getElementById('messageTitle').textContent = titulo;
     document.getElementById('messageText').textContent = mensagem;
     document.getElementById('messageModal').classList.add('active');
 }
-function fecharModalMensagem() { document.getElementById('messageModal').classList.remove('active'); }
 
-function selecionarTodos(containerId, selecionar) {
-    const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]`);
-    checkboxes.forEach(cb => cb.checked = selecionar);
-}
-
-function formatarMoeda(input) {
-    let valor = input.value.replace(/\D/g, '');
-    if (valor === '') { input.value = ''; return; }
-    valor = (parseInt(valor) / 100).toFixed(2);
-    input.value = valor;
+function fecharModalMensagem() { 
+    document.getElementById('messageModal').classList.remove('active'); 
 }
 
 function ativarStep(stepId) {
@@ -57,11 +48,51 @@ function ativarStep(stepId) {
     step.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// --- LÓGICA DE DADOS ---
+// Filtra as listas de checkboxes em tempo real
+function filtrarLista(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const filter = input.value.toLowerCase();
+    const container = document.getElementById(listId);
+    const items = container.getElementsByClassName('checkbox-item');
+
+    for (let i = 0; i < items.length; i++) {
+        const label = items[i].getElementsByTagName('label')[0];
+        if (label) {
+            const textValue = label.textContent || label.innerText;
+            if (textValue.toLowerCase().indexOf(filter) > -1) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
+            }
+        }
+    }
+}
+
+// Seleciona apenas os checkboxes que estão visíveis (não filtrados)
+function selecionarTodos(containerId, selecionar) {
+    const container = document.getElementById(containerId);
+    const items = container.getElementsByClassName('checkbox-item');
+    
+    for (let i = 0; i < items.length; i++) {
+        // Verifica se o item não está oculto pelo filtro
+        if (items[i].style.display !== "none") {
+            const checkbox = items[i].querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = selecionar;
+            }
+        }
+    }
+}
+
+// --- LÓGICA DE DADOS (SUPABASE) ---
 
 async function carregarEmpresas() {
     try {
-        const { data, error } = await supabaseClient.from('empresas').select('codigo_empresa, nome_empresa').order('nome_empresa', { ascending: true });
+        const { data, error } = await supabaseClient
+            .from('empresas')
+            .select('codigo_empresa, nome_empresa')
+            .order('nome_empresa', { ascending: true });
+            
         if (error) throw error;
         
         const container = document.getElementById('listaEmpresas');
@@ -108,6 +139,7 @@ async function buscarEmpregados() {
 
         const container = document.getElementById('listaEmpregados');
         container.innerHTML = '';
+        document.getElementById('buscaEmpregado').value = ''; // Limpa a busca anterior
 
         if (!data || data.length === 0) {
             container.innerHTML = '<div style="padding: 10px; color: red;">Nenhum empregado encontrado para as empresas selecionadas.</div>';
@@ -150,7 +182,12 @@ function gerarPrevia() {
     // Validações
     if (!tipoProcesso) { mostrarMensagem('Erro', 'Selecione o Tipo do Processo.'); return; }
     if (!rubrica) { mostrarMensagem('Erro', 'Informe o Código da Rubrica.'); return; }
-    if (!valorRaw || parseFloat(valorRaw) <= 0) { mostrarMensagem('Erro', 'Informe um valor válido maior que zero.'); return; }
+    
+    // Valida se é um número inteiro maior que zero
+    if (!valorRaw || parseInt(valorRaw) <= 0) { 
+        mostrarMensagem('Erro', 'Informe um valor numérico inteiro maior que zero.'); 
+        return; 
+    }
 
     // Formatações Layout Rigoroso
     const compParts = competenciaRaw.split('/');
@@ -160,9 +197,8 @@ function gerarPrevia() {
     const rubFormatada = String(rubrica).padStart(9, '0');
     const tipoProcFormatado = String(tipoProcesso).padStart(2, '0');
     
-    // Valor: Remove ponto/vírgula e preenche com zeros (ex: 150.50 -> 15050 -> 000015050)
-    const valorLimpo = valorRaw.replace(/\D/g, '');
-    const valFormatado = String(valorLimpo).padStart(9, '0');
+    // O valor já vem limpo do HTML (apenas dígitos), basta preencher com zeros
+    const valFormatado = String(valorRaw).padStart(9, '0');
 
     conteudoTXTGerado = '';
     let previaHTML = '';
