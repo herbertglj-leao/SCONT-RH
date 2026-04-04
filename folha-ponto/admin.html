@@ -413,33 +413,83 @@
 
         function handleFileSelect(event) { const files = event.target.files; if (files.length > 0) processarArquivo(files[0]); }
 
-        async function processarArquivo(file) {
+               async function processarArquivo(file) {
             try {
-                mostrarStatus('statusImportar', 'Lendo arquivo...', 'info'); document.getElementById('importProgress').style.display = 'block';
+                mostrarStatus('statusImportar', 'Lendo arquivo...', 'info'); 
+                document.getElementById('importProgress').style.display = 'block';
+                
                 const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-                const empresasSheet = workbook.Sheets['Empresas']; if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
+                
+                // 1. Processar aba de empresas
+                const empresasSheet = workbook.Sheets['Empresas']; 
+                if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
                 const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { header: ['codigo_empresa', 'nome_empresa'], defval: '' }).filter(row => row.codigo_empresa && row.nome_empresa);
-                const empregadosSheet = workbook.Sheets['Empregados']; if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
+                
+                // 2. Processar aba de empregados
+                const empregadosSheet = workbook.Sheets['Empregados']; 
+                if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
                 const empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado);
                 
-                mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); document.getElementById('progressBar').style.width = '25%';
-                await supabaseClient.from('empregados').delete().neq('id', 0); await supabaseClient.from('empresas').delete().neq('id', 0);
+                // 3. Processar aba de rubricas (NOVO)
+                const rubricasSheet = workbook.Sheets['Rubricas'];
+                let rubricasData = [];
+                if (rubricasSheet) {
+                    rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { header: ['codigo_empresa', 'codigo_rubrica', 'evento'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento);
+                } else {
+                    console.warn('Aba "Rubricas" não encontrada na planilha. Importando apenas Empresas e Empregados.');
+                }
                 
-                mostrarStatus('statusImportar', 'Importando empresas...', 'info'); document.getElementById('progressBar').style.width = '50%';
-                if (empresasData.length > 0) { const { error } = await supabaseClient.from('empresas').insert(empresasData); if (error) throw error; }
+                // Limpar dados existentes
+                mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); 
+                document.getElementById('progressBar').style.width = '20%';
                 
-                mostrarStatus('statusImportar', 'Importando empregados...', 'info'); document.getElementById('progressBar').style.width = '75%';
-                if (empregadosData.length > 0) { const { error } = await supabaseClient.from('empregados').insert(empregadosData); if (error) throw error; }
+                // A ordem de deleção importa por causa das chaves estrangeiras (Foreign Keys)
+                await supabaseClient.from('rubricas').delete().neq('id', 0);
+                await supabaseClient.from('empregados').delete().neq('id', 0); 
+                await supabaseClient.from('empresas').delete().neq('id', 0);
+                
+                // Inserir empresas
+                mostrarStatus('statusImportar', 'Importando empresas...', 'info'); 
+                document.getElementById('progressBar').style.width = '40%';
+                if (empresasData.length > 0) { 
+                    const { error } = await supabaseClient.from('empresas').insert(empresasData); 
+                    if (error) throw error; 
+                }
+                
+                // Inserir empregados
+                mostrarStatus('statusImportar', 'Importando empregados...', 'info'); 
+                document.getElementById('progressBar').style.width = '60%';
+                if (empregadosData.length > 0) { 
+                    const { error } = await supabaseClient.from('empregados').insert(empregadosData); 
+                    if (error) throw error; 
+                }
+                
+                // Inserir rubricas (NOVO)
+                mostrarStatus('statusImportar', 'Importando rubricas...', 'info'); 
+                document.getElementById('progressBar').style.width = '80%';
+                if (rubricasData.length > 0) { 
+                    const { error } = await supabaseClient.from('rubricas').insert(rubricasData); 
+                    if (error) throw error; 
+                }
                 
                 document.getElementById('progressBar').style.width = '100%';
                 setTimeout(() => {
                     document.getElementById('importProgress').style.display = 'none';
-                    mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas e ${empregadosData.length} empregados.`, 'success');
-                    carregarEmpresas(); carregarEmpregados(); document.getElementById('fileInput').value = '';
+                    mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas, ${empregadosData.length} empregados e ${rubricasData.length} rubricas.`, 'success');
+                    
+                    // Recarregar as tabelas na tela
+                    carregarEmpresas(); 
+                    carregarEmpregados(); 
+                    carregarRubricas(); 
+                    
+                    document.getElementById('fileInput').value = '';
                 }, 1000);
-            } catch (erro) { document.getElementById('importProgress').style.display = 'none'; mostrarStatus('statusImportar', 'Erro ao importar: ' + erro.message, 'error'); }
+                
+            } catch (erro) { 
+                document.getElementById('importProgress').style.display = 'none'; 
+                mostrarStatus('statusImportar', 'Erro ao importar: ' + erro.message, 'error'); 
+            }
         }
-
         // --- UTILITÁRIOS ---
         function mostrarStatus(elementId, mensagem, tipo) { const el = document.getElementById(elementId); el.textContent = mensagem; el.className = 'status-message ' + tipo; }
         function mostrarMensagem(titulo, mensagem) { document.getElementById('messageTitle').textContent = titulo; document.getElementById('messageText').textContent = mensagem; document.getElementById('messageModal').classList.add('active'); }
