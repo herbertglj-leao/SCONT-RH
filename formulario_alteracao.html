@@ -690,21 +690,21 @@
         const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI';
         let supabaseClient = null;
-
-        // ===== ELEMENTOS DO DOM =====
-        const form = document.getElementById('alteracaoForm');
-        const shareModal = document.getElementById('shareModal');
-        const modalClose = document.getElementById('modalClose');
-        const closeModalBtn = document.getElementById('closeModal');
-        const shareWhatsapp = document.getElementById('shareWhatsapp');
-        const sociosContainer = document.getElementById('sociosContainer');
-        const addSocioBtn = document.getElementById('addSocioBtn');
-
+// ===== ELEMENTOS DO DOM =====
+const form = document.getElementById('alteracaoForm');
+const shareModal = document.getElementById('shareModal');
+const modalClose = document.getElementById('modalClose');
+const closeModalBtn = document.getElementById('closeModal');
+const shareWhatsapp = document.getElementById('shareWhatsapp');
+const sociosContainer = document.getElementById('sociosContainer');
+const addSocioBtn = document.getElementById('addSocioBtn');
+const submitBtn = document.querySelector('.btn-primary'); // CORREÇÃO: Referência ao botão
         // ===== DADOS DO FORMULÁRIO =====
         let formData = {};
         let sociosCount = 0;
         let uploadedDocuments = {};
         let submissionId = null;
+let isSubmitting = false; // CORREÇÃO: FLAG PARA PREVENIR DUPLICAÇÃO
 
         // ===== INICIALIZAÇÃO =====
         document.addEventListener('DOMContentLoaded', function() {
@@ -1040,82 +1040,96 @@
         }
 
         // ===== SUBMISSÃO DO FORMULÁRIO =====
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            if (!validateForm()) {
-                return;
-            }
-            try {
-                console.log('📝 Coletando dados do formulário...');
-                collectFormData();
-                console.log('📄 Gerando PDF...');
-                const pdfBlob = await gerarPDFFormulario();
-                console.log('📤 Fazendo upload do PDF...');
-                const nomeFormulario = gerarNomeFormulario(formData.nomeEmpresa);
-                await uploadArquivo(pdfBlob, 'formulario', nomeFormulario);
-                
-                console.log('📤 Fazendo upload dos documentos dos sócios...');
-                for (let i = 1; i <= sociosCount; i++) {
-                    const nomeField = form.elements['socio' + i + 'Nome'];
-                    if (nomeField && nomeField.value && uploadedDocuments['socio' + i]) {
-                        const arquivo = uploadedDocuments['socio' + i];
-                        const nomeDoc = gerarNomeDocumentoSocio(formData.nomeEmpresa, i);
-                        await uploadArquivo(arquivo, 'documento', nomeDoc);
-                    }
-                }
-                
-                console.log('💾 Salvando dados no banco de dados...');
-                if (!supabaseClient) {
-                    console.warn('⚠️ Supabase não configurado. Simulando salvamento...');
-                    submissionId = 'SIM-' + Date.now();
-                    showModal();
-                    return;
-                }
-                
-                const { data: formulario, error: formularioError } = await supabaseClient
-                    .from('formularios')
-                    .insert([{
-                        tipo_formulario: 'alteracao',
-                        nome_empresa: formData.nomeEmpresa,
-                        alterar_nome: formData.alterarNome === 'sim',
-                        nome_opcao_1: formData.nomeOpcao1 || null,
-                        nome_opcao_2: formData.nomeOpcao2 || null,
-                        nome_opcao_3: formData.nomeOpcao3 || null,
-                        alterar_fantasia: formData.alterarFantasia === 'sim',
-                        novo_nome_fantasia: formData.novoNomeFantasia || null,
-                        alterar_capital: formData.alterarCapital === 'sim',
-                        novo_capital: formData.capitalNovo ? parseFloat(formData.capitalNovo) : null,
-                        alterar_dados: formData.alterardados === 'sim',
-                        novo_endereco: formData.enderecoNovo || null,
-                        cep_novo: formData.cepNovo || null,
-                        iptu_novo: formData.iptuNovo || null,
-                        metragem_nova: formData.metragemNova ? parseFloat(formData.metragemNova) : null,
-                        horario_novo: formData.horarioNovo || null,
-                        email_comercial_novo: formData.emailComercialNovo || null,
-                        telefone_comercial_novo: formData.telefoneComercialNovo || null,
-                        forma_atuacao: formData.formaAtuacao || null,
-                        alterar_atividades: formData.alterarAtividades === 'sim',
-                        atividade_principal_nova: formData.atividadePrincipalNova || null,
-                        atividades_secundarias_nova: formData.atividadesSecundariasNova || null,
-                        data_preenchimento: formData.dataPreenchimento,
-                        hora_preenchimento: formData.horaPreenchimento,
-                        status: 'recebido'
-                    }])
-                    .select();
-                
-                if (formularioError) {
-                    console.error('❌ Erro ao salvar formulário:', formularioError);
-                    throw formularioError;
-                }
-                
-                submissionId = formulario[0].id;
-                console.log('✅ Formulário salvo com ID:', submissionId);
-                showModal();
-            } catch (error) {
-                console.error('❌ Erro ao salvar formulário:', error);
-                alert('Erro ao salvar formulário: ' + error.message);
+     // ===== SUBMISSÃO DO FORMULÁRIO =====
+async function handleFormSubmit(e) {
+    e.preventDefault();
+
+    // CORREÇÃO #1: PREVENIR MÚLTIPLOS CLIQUES
+    if (isSubmitting) {
+        console.warn('⚠️ Formulário já está sendo enviado. Aguarde...');
+        return;
+    }
+
+    if (!validateForm()) {
+        return;
+    }
+
+    // ATIVAR FLAG E DESABILITAR BOTÃO
+    isSubmitting = true;
+    submitBtn.disabled = true;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Enviando...';
+
+    try {
+        console.log('📝 Coletando dados do formulário...');
+        collectFormData();
+        console.log('📄 Gerando PDF...');
+        const pdfBlob = await gerarPDFFormulario();
+        console.log('📤 Fazendo upload do PDF...');
+        const nomeFormulario = gerarNomeFormulario(formData.nomeEmpresa);
+        await uploadArquivo(pdfBlob, 'formulario', nomeFormulario);
+        console.log('📤 Fazendo upload dos documentos dos sócios...');
+        for (let i = 1; i <= sociosCount; i++) {
+            const nomeField = form.elements['socio' + i + 'Nome'];
+            if (nomeField && nomeField.value && uploadedDocuments['socio' + i]) {
+                const arquivo = uploadedDocuments['socio' + i];
+                const nomeDoc = gerarNomeDocumentoSocio(formData.nomeEmpresa, i);
+                await uploadArquivo(arquivo, 'documento', nomeDoc);
             }
         }
+        console.log('💾 Salvando dados no banco de dados...');
+        if (!supabaseClient) {
+            console.warn('⚠️ Supabase não configurado. Simulando salvamento...');
+            submissionId = 'SIM-' + Date.now();
+            showModal();
+            return;
+        }
+        const { data: formulario, error: formularioError } = await supabaseClient
+            .from('formularios')
+            .insert([{
+                tipo_formulario: 'alteracao',
+                nome_empresa: formData.nomeEmpresa,
+                alterar_nome: formData.alterarNome === 'sim',
+                nome_opcao_1: formData.nomeOpcao1 || null,
+                nome_opcao_2: formData.nomeOpcao2 || null,
+                nome_opcao_3: formData.nomeOpcao3 || null,
+                alterar_fantasia: formData.alterarFantasia === 'sim',
+                novo_nome_fantasia: formData.novoNomeFantasia || null,
+                alterar_capital: formData.alterarCapital === 'sim',
+                novo_capital: formData.capitalNovo ? parseFloat(formData.capitalNovo) : null,
+                alterar_dados: formData.alterardados === 'sim',
+                novo_endereco: formData.enderecoNovo || null,
+                cep_novo: formData.cepNovo || null,
+                iptu_novo: formData.iptuNovo || null,
+                metragem_nova: formData.metragemNova ? parseFloat(formData.metragemNova) : null,
+                horario_novo: formData.horarioNovo || null,
+                email_comercial_novo: formData.emailComercialNovo || null,
+                telefone_comercial_novo: formData.telefoneComercialNovo || null,
+                forma_atuacao: formData.formaAtuacao || null,
+                alterar_atividades: formData.alterarAtividades === 'sim',
+                atividade_principal_nova: formData.atividadePrincipalNova || null,
+                atividades_secundarias_nova: formData.atividadesSecundariasNova || null,
+                data_preenchimento: formData.dataPreenchimento,
+                hora_preenchimento: formData.horaPreenchimento,
+                status: 'recebido'
+            }])
+            .select();
+        if (formularioError) {
+            console.error('❌ Erro ao salvar formulário:', formularioError);
+            throw formularioError;
+        }
+        submissionId = formulario[0].id;
+        console.log('✅ Formulário salvo com ID:', submissionId);
+        showModal();
+    } catch (error) {
+        console.error('❌ Erro ao salvar formulário:', error);
+        alert('Erro ao salvar formulário: ' + error.message);
+        // CORREÇÃO #2: REABILITAR BOTÃO EM CASO DE ERRO
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
 
         // ===== GERAR PDF DO FORMULÁRIO (VERSÃO MELHORADA) =====
         async function gerarPDFFormulario() {
@@ -1433,14 +1447,17 @@
             shareModal.classList.add('show');
         }
 
-        function closeModal() {
-            shareModal.classList.remove('show');
-            form.reset();
-            sociosContainer.innerHTML = '';
-            sociosCount = 0;
-            uploadedDocuments = {};
-            addInitialSocio();
-        }
+ function closeModal() {
+    shareModal.classList.remove('show');
+    form.reset();
+    sociosContainer.innerHTML = '';
+    sociosCount = 0;
+    uploadedDocuments = {};
+    isSubmitting = false; // CORREÇÃO: Resetar flag
+    submitBtn.disabled = false; // CORREÇÃO: Reabilitar botão
+    submitBtn.innerHTML = 'SALVAR E ENVIAR'; // CORREÇÃO: Restaurar texto
+    addInitialSocio();
+}
 
         // ===== COMPARTILHAR VIA WHATSAPP =====
         function shareViaWhatsapp() {
@@ -1455,13 +1472,12 @@
                 mensagem += 'ID: ' + submissionId + '\n\n';
                 mensagem += '*DATA E HORA*\n';
                 mensagem += 'Preenchido em: ' + formData.dataPreenchimento + ' às ' + formData.horaPreenchimento + '\n\n';
-                mensagem += '✅ Seus dados foram salvos em nossa base de dados.\n';
+                mensagem += '✅ Os dados foram salvos na base de dados.\n';
                 mensagem += '📋 Sócios registrados: ' + sociosCount + '\n';
                 mensagem += '📎 Documentos anexados: Sim\n';
                 mensagem += '📄 PDF do formulário: Gerado e Enviado\n\n';
-                mensagem += 'Entraremos em contato em breve para prosseguir com o processo.\n\n';
-                mensagem += '_SCONT Soluções Contábeis_';
-                const whatsappUrl = 'https://wa.me/5561993543223?text=' + encodeURIComponent(mensagem);
+                        
+                const whatsappUrl = 'https://wa.me/5561996011871?text=' + encodeURIComponent(mensagem);
                 window.open(whatsappUrl, '_blank');
                 setTimeout(function() {
                     closeModal();

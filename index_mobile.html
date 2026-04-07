@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>SCONT Soluções Contábeis - Portal de Aplicações</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --bg-alt: #eef3f8;
+      --surface: rgba(255,255,255,0.92);
+      --surface-strong: #ffffff;
+      --text: #152033;
+      --muted: #5f6b7a;
+      --line: rgba(18, 32, 51, 0.10);
+      --primary: #0b5cab;
+      --primary-2: #0f74d8;
+      --accent: #16a34a;
+      --warning: #f59e0b;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --shadow-hover: 0 16px 40px rgba(15, 23, 42, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --max-width: 1220px;
+      --header-height: 76px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15,116,216,0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(22,163,74,0.08), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    button { font: inherit; }
+
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: 12px;
+      z-index: 9999;
+      background: #fff;
+      color: #000;
+      padding: 12px 16px;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+    .skip-link:focus { left: 12px; }
+
+    .shell {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 18px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      height: var(--header-height);
+      backdrop-filter: blur(18px);
+      background: rgba(244, 247, 251, 0.82);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 55%, #1d4ed8 100%);
+      box-shadow: 0 10px 22px rgba(11, 92, 171, 0.24);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      flex: 0 0 auto;
+    }
+
+    .brand-text {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-text strong {
+      font-size: 0.98rem;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-text span {
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.75);
+      color: var(--text);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      cursor: pointer;
+    }
+
+    .nav-menu {
+      position: fixed;
+      inset: calc(var(--header-height) + 1px) 0 auto 0;
+      background: rgba(255,255,255,0.96);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 20px 36px rgba(15,23,42,0.10);
+      transform: translateY(-120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: 220ms ease;
+    }
+
+    .nav-menu.active {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .nav-list {
+      list-style: none;
+      margin: 0;
+      padding: 14px 18px 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .nav-list a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #f7fafc;
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .hero {
+      padding: 22px 0 12px;
+    }
+
+    .hero-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(15,116,216,0.18), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(22,163,74,0.10), transparent 28%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 26px 18px 20px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: rgba(11, 92, 171, 0.08);
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    .hero h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(1.65rem, 4.5vw, 3.1rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.65;
+      max-width: 64ch;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .meta-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 15px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      color: var(--text);
+      font-size: 0.95rem;
+      box-shadow: 0 6px 20px rgba(15,23,42,0.04);
+    }
+
+    .meta-pill span {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(11, 92, 171, 0.10);
+      color: var(--primary);
+      flex: 0 0 auto;
+    }
+
+    .section {
+      padding: 14px 0 2px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 0 14px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .module {
+      margin-bottom: 18px;
+    }
+
+    .module-shell {
+      border-radius: var(--radius-xl);
+      background: rgba(255,255,255,0.70);
+      border: 1px solid rgba(255,255,255,0.72);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .module-header {
+      padding: 16px 16px 0;
+    }
+
+    .module-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      font-size: 1.06rem;
+    }
+
+    .module-title .badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      background: rgba(11, 92, 171, 0.10);
+      color: var(--primary);
+      flex: 0 0 auto;
+    }
+
+    .module-title-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .module-title-text small {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.84rem;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .app-card {
+      display: block;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(15,23,42,0.05);
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+      min-height: 100%;
+    }
+
+    .app-card:active {
+      transform: scale(0.99);
+    }
+
+    .app-card:hover {
+      box-shadow: var(--shadow-hover);
+      border-color: rgba(11, 92, 171, 0.24);
+    }
+
+    .app-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .app-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(11,92,171,0.12), rgba(11,92,171,0.06));
+      color: var(--primary);
+      flex: 0 0 auto;
+      font-size: 1.2rem;
+    }
+
+    .app-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .app-copy h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .app-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .badge-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .features {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .features li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: #2b394a;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .features li::before {
+      content: "•";
+      color: var(--accent);
+      font-weight: 900;
+      flex: 0 0 auto;
+      line-height: 1.2;
+      margin-top: 1px;
+    }
+
+    .app-action {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 46px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      box-shadow: 0 10px 22px rgba(11,92,171,0.22);
+    }
+
+    .app-card.featured {
+      border-color: rgba(245, 158, 11, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,249,237,0.92));
+    }
+
+    .app-card.featured .app-icon {
+      background: linear-gradient(180deg, rgba(245,158,11,0.16), rgba(245,158,11,0.08));
+      color: #b45309;
+    }
+
+    .app-card.featured .app-action {
+      background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+      box-shadow: 0 10px 22px rgba(245,158,11,0.22);
+    }
+
+    .info {
+      margin-top: 14px;
+    }
+
+    .info-shell {
+      border-radius: var(--radius-xl);
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(255,255,255,0.74);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .info-header {
+      padding: 18px 16px 0;
+    }
+
+    .info-grid {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .info-item {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+
+    .info-item h3 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .info-item h3 span {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(11, 92, 171, 0.08);
+      color: var(--primary);
+      flex: 0 0 auto;
+    }
+
+    .info-item p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .footer {
+      padding: 20px 0 28px;
+    }
+
+    .footer-shell {
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, #0f172a 0%, #101b2e 100%);
+      color: rgba(255,255,255,0.92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .footer-inner {
+      padding: 22px 16px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-brand .brand-mark {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
+    }
+
+    .footer-copy strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .footer-copy p,
+    .footer-copy a {
+      margin: 0;
+      color: rgba(255,255,255,0.80);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .footer-copy a {
+      text-decoration: underline;
+    }
+
+    .footer-note {
+      border-top: 1px solid rgba(255,255,255,0.10);
+      padding-top: 14px;
+      font-size: 0.84rem;
+      color: rgba(255,255,255,0.68);
+    }
+
+    .desktop-only { display: none; }
+
+    @media (min-width: 720px) {
+      .shell { padding: 0 24px; }
+
+      .nav-toggle { display: none; }
+
+      .nav-menu {
+        position: static;
+        transform: none;
+        opacity: 1;
+        pointer-events: auto;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+
+      .nav-list {
+        padding: 0;
+        display: flex;
+        gap: 8px;
+      }
+
+      .nav-list a {
+        background: rgba(255,255,255,0.72);
+        min-height: 46px;
+      }
+
+      .hero-inner {
+        padding: 34px 28px 26px;
+      }
+
+      .hero-meta {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .section-head h2 {
+        font-size: 1.25rem;
+      }
+
+      .apps-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 18px;
+      }
+
+      .info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 18px;
+      }
+
+      .footer-inner {
+        grid-template-columns: 1.4fr 1fr;
+        align-items: start;
+        padding: 26px 22px;
+      }
+
+      .footer-note {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (min-width: 1040px) {
+      .apps-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .footer-inner {
+        grid-template-columns: 1.4fr 1fr 0.9fr;
+      }
+
+      .desktop-only { display: block; }
+
+      .hero p {
+        font-size: 1.04rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="#inicio" aria-label="SCONT Soluções Contábeis">
+        <div class="brand-mark">S</div>
+        <div class="brand-text">
+          <strong>SCONT Soluções Contábeis</strong>
+          <span>Portal de Aplicações</span>
+        </div>
+      </a>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navMenu">
+        ☰
+      </button>
+
+      <nav class="nav-menu" id="navMenu" aria-label="Navegação principal">
+        <ul class="nav-list">
+          <li><a href="#gestao-pessoas">Gestão de Pessoas</a></li>
+          <li><a href="#gestao-empresas">Gestão de Empresas</a></li>
+          <li><a href="#gestao-documentos">Gestão de Documentos</a></li>
+          <li><a href="#ferramentas-uteis">Ferramentas Úteis</a></li>
+          <li><a href="#administracao-sistema">Administração</a></li>
+          <li><a href="#informacoes-importantes">Informações</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section id="inicio" class="hero">
+      <div class="shell">
+        <div class="hero-card">
+          <div class="hero-inner">
+            <div class="eyebrow">Acesso centralizado</div>
+            <h1>Portal de Aplicações SCONT</h1>
+            <p>
+              Uma interface mobile-first, clara e profissional para acessar as principais ferramentas da SCONT Soluções Contábeis,
+              com foco em agilidade, leitura fácil e navegação confortável no celular.
+            </p>
+
+            <div class="hero-meta">
+              <div class="meta-pill"><span>⚡</span> Fluxo otimizado para uso rápido</div>
+              <div class="meta-pill"><span>🔒</span> Ambiente pensado para dados sensíveis</div>
+              <div class="meta-pill"><span>📱</span> Excelente experiência em telas pequenas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gestao-pessoas" class="section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>Gestão de Pessoas</h2>
+            <p>Ferramentas para rotinas de folha, lançamentos e controle operacional.</p>
+          </div>
+        </div>
+
+        <div class="module">
+          <div class="module-shell">
+            <div class="module-header">
+              <h3 class="module-title">
+                <span class="badge">👥</span>
+                <span class="module-title-text">
+                  <span>Aplicações de RH e ponto</span>
+                  <small>Operações mais usadas pela equipe</small>
+                </span>
+              </h3>
+            </div>
+
+            <div class="apps-grid">
+              <a class="app-card" href="./folha-ponto/index.html">
+                <div class="app-top">
+                  <div class="app-icon">⏱️</div>
+                  <div class="app-copy">
+                    <h3>Folha de Ponto</h3>
+                    <p>Apuração e processamento de horas trabalhadas, extras e noturnas.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Cálculo automático de horas</li>
+                  <li>Gestão de feriados e DSR</li>
+                  <li>Exportação para Excel</li>
+                  <li>Salvamento em nuvem</li>
+                </ul>
+                <div class="app-action">Acessar Sistema</div>
+              </a>
+
+              <a class="app-card" href="./folha-ponto/lancamentos.html">
+                <div class="app-top">
+                  <div class="app-icon">💸</div>
+                  <div class="app-copy">
+                    <h3>Lançamentos em Lote</h3>
+                    <p>Lançamento de pagamentos e eventos na folha via arquivo TXT.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Seleção múltipla de empresas</li>
+                  <li>Filtro de empregados</li>
+                  <li>Geração de arquivo TXT</li>
+                  <li>Layout rigoroso para importação</li>
+                </ul>
+                <div class="app-action">Acessar Lançamentos</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gestao-empresas" class="section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>Gestão de Empresas</h2>
+            <p>Cadastro e atualização de informações cadastrais e fiscais.</p>
+          </div>
+        </div>
+
+        <div class="module">
+          <div class="module-shell">
+            <div class="module-header">
+              <h3 class="module-title">
+                <span class="badge">🏢</span>
+                <span class="module-title-text">
+                  <span>Registro e alteração de empresas</span>
+                  <small>Fluxos administrativos essenciais</small>
+                </span>
+              </h3>
+            </div>
+
+            <div class="apps-grid">
+              <a class="app-card" href="formulario_registro.html">
+                <div class="app-top">
+                  <div class="app-icon">📝</div>
+                  <div class="app-copy">
+                    <h3>Registro de Empresa</h3>
+                    <p>Cadastre uma nova empresa no sistema com todos os dados necessários.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Dados básicos da empresa</li>
+                  <li>Informações fiscais</li>
+                  <li>Dados de sócios</li>
+                  <li>Documentação</li>
+                </ul>
+                <div class="app-action">Acessar Registro</div>
+              </a>
+
+              <a class="app-card" href="formulario_alteracao.html">
+                <div class="app-top">
+                  <div class="app-icon">✏️</div>
+                  <div class="app-copy">
+                    <h3>Alteração de Empresa</h3>
+                    <p>Atualize os dados de uma empresa já registrada no sistema.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Editar dados básicos</li>
+                  <li>Atualizar informações fiscais</li>
+                  <li>Gerenciar sócios</li>
+                  <li>Histórico de alterações</li>
+                </ul>
+                <div class="app-action">Acessar Alteração</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gestao-documentos" class="section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>Gestão de Documentos</h2>
+            <p>Organização, consulta e controle de documentos com foco em eficiência.</p>
+          </div>
+        </div>
+
+        <div class="module">
+          <div class="module-shell">
+            <div class="module-header">
+              <h3 class="module-title">
+                <span class="badge">📂</span>
+                <span class="module-title-text">
+                  <span>Documentos, certificados e certidões</span>
+                  <small>Área com destaque para recursos novos</small>
+                </span>
+              </h3>
+            </div>
+
+            <div class="apps-grid">
+              <a class="app-card" href="leitor.html">
+                <div class="app-top">
+                  <div class="app-icon">📋</div>
+                  <div class="app-copy">
+                    <h3>Gerenciador de Documentos</h3>
+                    <p>Visualize, organize e gerencie todos os seus arquivos e documentos.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Visualizar documentos</li>
+                  <li>Organizar arquivos</li>
+                  <li>Buscar documentos</li>
+                  <li>Download de arquivos</li>
+                </ul>
+                <div class="app-action">Acessar Documentos</div>
+              </a>
+
+              <a class="app-card featured" href="certificado_digital.html">
+                <div class="badge-new">Novo</div>
+                <div class="app-top">
+                  <div class="app-icon">🔐</div>
+                  <div class="app-copy">
+                    <h3>Controlador de Certificados</h3>
+                    <p>Gestão completa de certificados digitais com análise avançada e relatórios detalhados.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Dashboard com alertas críticos</li>
+                  <li>Relatórios multi-filtro</li>
+                  <li>Upload de arquivos</li>
+                  <li>Histórico de atividades</li>
+                </ul>
+                <div class="app-action">Acessar Controlador</div>
+              </a>
+
+              <a class="app-card featured" href="control.html">
+                <div class="badge-new">Novo</div>
+                <div class="app-top">
+                  <div class="app-icon">🔐</div>
+                  <div class="app-copy">
+                    <h3>Controlador de Certidões e Alvarás</h3>
+                    <p>Gestão completa de certidões e alvarás.</p>
+                  </div>
+                </div>
+                <ul class="features">
+                  <li>Dashboard com alertas críticos</li>
+                  <li>Controle de documentos</li>
+                  <li>Controle de processos relacionados</li>
+                  <li>Histórico do andamento dos processos</li>
+                </ul>
+                <div class="app-action">Acessar Controlador</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ferramentas-uteis" class="section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>Ferramentas Úteis</h2>
+            <p>Utilitários internos para agilizar tarefas ope

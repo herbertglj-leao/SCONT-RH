@@ -355,6 +355,13 @@ function configurarUpload() {
 
 function handleFileSelect(event) { const files = event.target.files; if (files.length > 0) processarArquivo(files[0]); }
 
+
+
+
+
+
+
+
 async function processarArquivo(file) {
     try {
         mostrarStatus('statusImportar', 'Lendo arquivo...', 'info'); 
@@ -362,53 +369,171 @@ async function processarArquivo(file) {
         
         const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
         
+        // ===== EMPRESAS =====
         const empresasSheet = workbook.Sheets['Empresas']; 
         if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
-        const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { header: ['codigo_empresa', 'nome_empresa'], defval: '' }).filter(row => row.codigo_empresa && row.nome_empresa);
         
+        const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { 
+            header: ['codigo_empresa', 'nome_empresa'], 
+            defval: '' 
+        }).filter(row => row.codigo_empresa && row.nome_empresa)
+         .map(row => ({
+            codigo_empresa: String(row.codigo_empresa).trim(),
+            nome_empresa: String(row.nome_empresa).trim()
+        }));
+        
+        console.log('📊 Empresas lidas:', empresasData);
+        
+        // ===== EMPREGADOS =====
         const empregadosSheet = workbook.Sheets['Empregados']; 
         if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
-        const empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado);
         
+        let empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { 
+            header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], 
+            defval: '' 
+        }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado)
+         .map(row => ({
+            codigo_empresa: String(row.codigo_empresa).trim(),
+            codigo_empregado: String(row.codigo_empregado).trim(),
+            nome_empregado: String(row.nome_empregado).trim()
+        }));
+        
+        console.log('👥 Empregados lidos:', empregadosData);
+        
+        // VALIDAÇÃO: Verificar se todos os codigo_empresa dos empregados existem nas empresas
+        const codigosEmpresasValidos = new Set(empresasData.map(e => e.codigo_empresa));
+        const empregadosComErro = empregadosData.filter(emp => !codigosEmpresasValidos.has(emp.codigo_empresa));
+        
+        if (empregadosComErro.length > 0) {
+            console.error('❌ Empregados com empresa inexistente:', empregadosComErro);
+            
+            // MENSAGEM DETALHADA COM NOME DO EMPREGADO
+            const detalhesErro = empregadosComErro.map(e => 
+                `\n🔴 Nome: ${e.nome_empregado}\n   Empresa: ${e.codigo_empresa}\n   Código: ${e.codigo_empregado}`
+            ).join('\n');
+            
+            throw new Error(`❌ ERRO: ${empregadosComErro.length} empregado(s) com empresa inválida!\n\nDELETE ESSAS LINHAS DA ABA "EMPREGADOS":${detalhesErro}\n\nEssas linhas têm valores de placeholder (CÓDIGO DA EMPRESA, CODIGO DO EMPREGADO, etc) em vez de dados reais.`);
+        }
+        
+        // VALIDAÇÃO: Remover duplicatas
+        const empregadosUnicos = [];
+        const chavesVistas = new Set();
+        let duplicatasRemovidas = 0;
+        
+        empregadosData.forEach(row => {
+            const chaveUnica = `${row.codigo_empresa}|${row.codigo_empregado}`;
+            
+            if (!chavesVistas.has(chaveUnica)) {
+                chavesVistas.add(chaveUnica);
+                empregadosUnicos.push(row);
+            } else {
+                duplicatasRemovidas++;
+                console.warn(`⚠️ Duplicata removida: Empresa ${row.codigo_empresa}, Empregado ${row.codigo_empregado}`);
+            }
+        });
+        
+        // ===== RUBRICAS =====
         const rubricasSheet = workbook.Sheets['Rubricas'];
         let rubricasData = [];
         if (rubricasSheet) {
-            rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { header: ['codigo_empresa', 'codigo_rubrica', 'evento'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento);
+            rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { 
+                header: ['codigo_empresa', 'codigo_rubrica', 'evento'], 
+                defval: '' 
+            }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento)
+             .map(row => ({
+                codigo_empresa: String(row.codigo_empresa).trim(),
+                codigo_rubrica: String(row.codigo_rubrica).trim(),
+                evento: String(row.evento).trim()
+            }));
+            
+            console.log('📋 Rubricas lidas:', rubricasData);
         }
         
+        // ===== LIMPEZA =====
         mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); 
         document.getElementById('progressBar').style.width = '20%';
         
         await supabaseClient.from('rubricas').delete().neq('id', 0);
-        await supabaseClient.from('empregados').delete().neq('id', 0); 
+        await supabaseClient.from('empregados').delete().neq('id', 0);
         await supabaseClient.from('empresas').delete().neq('id', 0);
         
+        // ===== INSERÇÃO =====
+        
+        // 1. EMPRESAS
         mostrarStatus('statusImportar', 'Importando empresas...', 'info'); 
         document.getElementById('progressBar').style.width = '40%';
-        if (empresasData.length > 0) { const { error } = await supabaseClient.from('empresas').insert(empresasData); if (error) throw error; }
         
+        if (empresasData.length > 0) { 
+            const { error } = await supabaseClient.from('empresas').insert(empresasData); 
+            if (error) {
+                console.error('❌ Erro ao inserir empresas:', error);
+                throw error;
+            }
+        }
+        
+        // 2. EMPREGADOS
         mostrarStatus('statusImportar', 'Importando empregados...', 'info'); 
         document.getElementById('progressBar').style.width = '60%';
-        if (empregadosData.length > 0) { const { error } = await supabaseClient.from('empregados').insert(empregadosData); if (error) throw error; }
         
+        if (empregadosUnicos.length > 0) { 
+            console.log('📤 Enviando empregados:', empregadosUnicos);
+            const { error } = await supabaseClient.from('empregados').insert(empregadosUnicos); 
+            if (error) {
+                console.error('❌ Erro ao inserir empregados:', error);
+                console.error('Dados que causaram erro:', empregadosUnicos);
+                throw error;
+            }
+        }
+        
+        // 3. RUBRICAS
         mostrarStatus('statusImportar', 'Importando rubricas...', 'info'); 
         document.getElementById('progressBar').style.width = '80%';
-        if (rubricasData.length > 0) { const { error } = await supabaseClient.from('rubricas').insert(rubricasData); if (error) throw error; }
         
+        if (rubricasData.length > 0) { 
+            const { error } = await supabaseClient.from('rubricas').insert(rubricasData); 
+            if (error) {
+                console.error('❌ Erro ao inserir rubricas:', error);
+                throw error;
+            }
+        }
+        
+        // ===== SUCESSO =====
         document.getElementById('progressBar').style.width = '100%';
+        
         setTimeout(() => {
             document.getElementById('importProgress').style.display = 'none';
-            mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas, ${empregadosData.length} empregados e ${rubricasData.length} rubricas.`, 'success');
             
-            carregarEmpresas(); carregarEmpregados(); carregarRubricas(); 
+            const mensagem = `✅ Importação concluída!\n` +
+                `${empresasData.length} empresas\n` +
+                `${empregadosUnicos.length} empregados${duplicatasRemovidas > 0 ? ` (${duplicatasRemovidas} duplicatas removidas)` : ''}\n` +
+                `${rubricasData.length} rubricas`;
+            
+            mostrarStatus('statusImportar', mensagem, 'success');
+            
+            carregarEmpresas(); 
+            carregarEmpregados(); 
+            carregarRubricas(); 
+            
             document.getElementById('fileInput').value = '';
         }, 1000);
         
     } catch (erro) { 
         document.getElementById('importProgress').style.display = 'none'; 
-        mostrarStatus('statusImportar', 'Erro ao importar: ' + erro.message, 'error'); 
+        console.error('🔴 ERRO COMPLETO:', erro);
+        mostrarStatus('statusImportar', '❌ Erro ao importar: ' + erro.message, 'error'); 
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 // --- UTILITÁRIOS ---
 

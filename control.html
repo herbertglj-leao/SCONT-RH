@@ -799,8 +799,8 @@
     <div class="brand">
       <div class="brand-mark">SC</div>
       <div>
-        <h1>SCONT Soluções Contábeis</h1>
-        <p>Gestão premium de licenças, alvarás e relatórios</p>
+        <h1>SCONT</h1>
+        <p> Soluções Contábeis</p>
       </div>
     </div>
     <nav class="nav">
@@ -819,8 +819,8 @@
   <main class="main">
     <div class="topbar">
       <div class="title-block">
-        <h2>Plataforma ERP Premium</h2>
-        <p>Sistema para controle de licenças de funcionamento, alvarás, processos e relatórios gerenciais com alertas configuráveis e operação pronta para Supabase.</p>
+        <h2>Controlador Certidões e Alvarás</h2>
+        
       </div>
       <div class="top-actions">
         <button class="btn btn-secondary" id="syncBtn">Sincronizar</button>
@@ -1014,7 +1014,7 @@
               </tr>
             </thead>
             <tbody id="andamentoTable">
-              <tr><td colspan="5" style="text-align:center;color:var(--muted);">Selecione um processo para ver o histórico</td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);">Carregando histórico...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1496,6 +1496,7 @@ function showSection(sectionId) {
       fetchDocumentos();
     } else if (sectionId === 'processos') {
       console.log('📋 Carregando Processos...');
+ loadAllAndamentos(); // ← Adicionar esta linha
       fetchProcessos();
     } else if (sectionId === 'clientes') {
       console.log('👥 Carregando Clientes...');
@@ -1799,105 +1800,63 @@ function filterDocumentosPorTipo(tipo) {
   });
 }
 
-async function openNewDocumento() {
+function openNewDocumento() {
   const modal = document.getElementById('recordModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
   
   modalTitle.textContent = 'Novo Documento';
   
-  // Mostrar loading enquanto busca clientes
   modalBody.innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="spinner" style="width: 40px; height: 40px; border: 3px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 12px;"></div>
-      <p>Carregando estabelecimentos...</p>
-    </div>
+    <form onsubmit="saveDocumento(event)">
+      <div class="form-grid">
+        <div class="field">
+          <label>Tipo de Documento</label>
+          <select id="tipoDoc" required>
+            <option value="licenca">Licença</option>
+            <option value="alvara">Alvará</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Estabelecimento</label>
+          <input type="text" id="estabelecimento" required>
+        </div>
+        <div class="field">
+          <label>Tipo específico</label>
+          <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
+        </div>
+        <div class="field">
+          <label>Número</label>
+          <input type="text" id="numero" required>
+        </div>
+        <div class="field">
+          <label>Data de emissão</label>
+          <input type="date" id="dataEmissao" required>
+        </div>
+        <div class="field">
+          <label>Data de validade</label>
+          <input type="date" id="dataValidade" required>
+        </div>
+        <div class="field">
+          <label>Órgão emissor</label>
+          <input type="text" id="orgaoEmissor" required>
+        </div>
+        <div class="field">
+          <label>Responsável</label>
+          <input type="text" id="responsavel" required>
+        </div>
+        <div class="field full">
+          <label>Observações</label>
+          <textarea id="observacoes"></textarea>
+        </div>
+        <div class="field full">
+          <button type="submit" class="btn btn-primary">Salvar documento</button>
+        </div>
+      </div>
+    </form>
   `;
   
-  try {
-    // Buscar clientes para dropdown de estabelecimentos
-    const { data: clientes, error: erroClientes } = await supabaseClient
-      .from('clientes')
-      .select('nome')
-      .order('nome', { ascending: true });
-    
-    if (erroClientes) throw erroClientes;
-    
-    const optionsEstabHtml = (clientes || []).map(cliente => 
-      `<option value="${cliente.nome}">${cliente.nome}</option>`
-    ).join('');
-    
-    // Renderizar formulário
-    modalBody.innerHTML = `
-      <form onsubmit="saveDocumento(event)">
-        <div class="form-grid">
-          <div class="field">
-            <label>Tipo de Documento</label>
-            <select id="tipoDoc" required>
-              <option value="licenca">Licença</option>
-              <option value="alvara">Alvará</option>
-            </select>
-          </div>
-          
-          <div class="field full">
-            <label>🏢 Estabelecimento *</label>
-            <select id="estabelecimento" required style="border: 2px solid var(--brand);">
-              <option value="">-- Selecione um estabelecimento --</option>
-              ${optionsEstabHtml}
-            </select>
-            <small style="color: var(--muted); margin-top: 4px; display: block;">
-              Total de ${clientes?.length || 0} estabelecimento(s) cadastrado(s)
-            </small>
-          </div>
-          
-          <div class="field">
-            <label>Tipo específico</label>
-            <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
-          </div>
-          <div class="field">
-            <label>Número</label>
-            <input type="text" id="numero" required>
-          </div>
-          <div class="field">
-            <label>Data de emissão</label>
-            <input type="date" id="dataEmissao" required>
-          </div>
-          <div class="field">
-            <label>Data de validade</label>
-            <input type="date" id="dataValidade" required>
-          </div>
-          <div class="field">
-            <label>Órgão emissor</label>
-            <input type="text" id="orgaoEmissor" required>
-          </div>
-          <div class="field">
-            <label>Responsável</label>
-            <input type="text" id="responsavel" required>
-          </div>
-          <div class="field full">
-            <label>Observações</label>
-            <textarea id="observacoes"></textarea>
-          </div>
-          <div class="field full">
-            <button type="submit" class="btn btn-primary">Salvar documento</button>
-          </div>
-        </div>
-      </form>
-    `;
-    
-    modal.classList.add('active');
-    console.log('✓ Formulário de novo documento carregado com sucesso');
-    
-  } catch (error) {
-    console.error('❌ Erro ao carregar estabelecimentos:', error);
-    modalBody.innerHTML = `
-      <div style="text-align: center; padding: 20px; color: var(--danger);">
-        <p>❌ Erro ao carregar estabelecimentos</p>
-        <p style="font-size: .9rem;">${error.message}</p>
-      </div>
-    `;
-    modal.classList.add('active');
-  }
+  modal.classList.add('active');
 }
 
 async function saveDocumento(event) {
@@ -1949,7 +1908,7 @@ async function fetchProcessos() {
     tbody.innerHTML = '';
     
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Nenhum processo cadastrado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Nenhum processo cadastrado</td></tr>';
       return;
     }
     
@@ -1999,34 +1958,44 @@ async function fetchProcessos() {
       `;
       tbody.appendChild(row);
     });
-
+    
     attachActionListeners();
+    
+    // Adicionar listener para carregar andamento ao clicar em "Ver"
+    setTimeout(() => {
+      document.querySelectorAll('[data-action="view-processo"]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const processoId = btn.getAttribute('data-id');
+          console.log('👁️ Clicou em Ver processo:', processoId);
+          await loadAndamentoForProcesso(processoId);
+        });
+      });
+    }, 100);
+    
   } catch (error) {
     console.error('Erro ao carregar processos:', error);
     showAlert('Erro ao carregar processos', 'error');
   }
-// Adicionar listener para carregar andamento ao clicar em "Ver"
-setTimeout(() => {
-  document.querySelectorAll('[data-action="view-processo"]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const processoId = btn.getAttribute('data-id');
-      await loadAndamentoForProcesso(processoId);
-    });
-  });
-}, 100);
 }
 
-// Função para carregar andamento de um processo específico
-async function loadAndamentoForProcesso(processoId) {
+// Carregar todos os andamentos ao abrir a aba Processos
+async function loadAllAndamentos() {
   try {
-    console.log('📋 Carregando andamento para processo:', processoId);
+    console.log('📋 Carregando TODOS os andamentos...');
     
-    // Buscar andamento do processo
     const { data: andamentos, error } = await supabaseClient
       .from('andamento_processos')
-      .select('*')
-      .eq('processo_id', processoId)
+      .select(`
+        id,
+        processo_id,
+        status_anterior,
+        status_novo,
+        data_mudanca,
+        responsavel,
+        observacao,
+        processos(numero_processo)
+      `)
       .order('data_mudanca', { ascending: false });
     
     if (error) throw error;
@@ -2036,6 +2005,62 @@ async function loadAndamentoForProcesso(processoId) {
     
     if (!andamentos || andamentos.length === 0) {
       console.log('ℹ️ Nenhum andamento encontrado');
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Nenhum andamento registrado</td></tr>';
+      return;
+    }
+    
+    console.log(`📊 ${andamentos.length} andamento(s) encontrado(s)`);
+    
+    andamentos.forEach(and => {
+      const row = document.createElement('tr');
+      const processoNum = and.processos?.numero_processo || 'N/A';
+      
+      row.innerHTML = `
+        <td>${formatDate(and.data_mudanca)}</td>
+        <td>${and.status_anterior || 'Início'}</td>
+        <td><strong>${and.status_novo}</strong></td>
+        <td>${and.responsavel || '-'}</td>
+        <td>${and.observacao || '-'} <span style="color:var(--muted);font-size:.8rem;">(${processoNum})</span></td>
+      `;
+      tbody.appendChild(row);
+    });
+    
+    console.log('✓ Andamentos carregados com sucesso');
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar andamentos:', error);
+    const tbody = document.getElementById('andamentoTable');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Erro ao carregar andamentos</td></tr>';
+  }
+}
+
+// Função para filtrar andamento por processo específico
+async function loadAndamentoForProcesso(processoId) {
+  try {
+    console.log('📋 Carregando andamento para processo:', processoId);
+    
+    const { data: andamentos, error } = await supabaseClient
+      .from('andamento_processos')
+      .select(`
+        id,
+        processo_id,
+        status_anterior,
+        status_novo,
+        data_mudanca,
+        responsavel,
+        observacao,
+        processos(numero_processo)
+      `)
+      .eq('processo_id', processoId)
+      .order('data_mudanca', { ascending: false });
+    
+    if (error) throw error;
+    
+    const tbody = document.getElementById('andamentoTable');
+    tbody.innerHTML = '';
+    
+    if (!andamentos || andamentos.length === 0) {
+      console.log('ℹ️ Nenhum andamento encontrado para este processo');
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Nenhum andamento registrado para este processo</td></tr>';
       return;
     }
@@ -2044,12 +2069,14 @@ async function loadAndamentoForProcesso(processoId) {
     
     andamentos.forEach(and => {
       const row = document.createElement('tr');
+      const processoNum = and.processos?.numero_processo || 'N/A';
+      
       row.innerHTML = `
         <td>${formatDate(and.data_mudanca)}</td>
         <td>${and.status_anterior || 'Início'}</td>
         <td><strong>${and.status_novo}</strong></td>
         <td>${and.responsavel || '-'}</td>
-        <td>${and.observacao || '-'}</td>
+        <td>${and.observacao || '-'} <span style="color:var(--muted);font-size:.8rem;">(${processoNum})</span></td>
       `;
       tbody.appendChild(row);
     });
@@ -2158,7 +2185,16 @@ async function openNewProcesso() {
             </small>
           </div>
           
-      
+          <div class="field full">
+            <label>🏢 Estabelecimento *</label>
+            <select id="estabelecimentoProcesso" required style="border: 2px solid var(--brand);">
+              <option value="">-- Selecione um estabelecimento --</option>
+              ${optionsEstabHtml}
+            </select>
+            <small style="color: var(--muted); margin-top: 4px; display: block;">
+              Total de ${clientes?.length || 0} estabelecimento(s) cadastrado(s)
+            </small>
+          </div>
           
           <div class="field full">
             <label>Número do Processo *</label>
@@ -2236,7 +2272,7 @@ function atualizarTipoDocumento() {
   
   if (!documentoVinculado) {
     tipoDocumentoInput.value = '';
-   
+    estabelecimentoInput.value = '';
     return;
   }
   
