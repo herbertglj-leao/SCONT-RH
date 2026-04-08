@@ -1,0 +1,289 @@
+/* ============================================
+   LAYOUT - ESTRUTURA PRINCIPAL PREMIUM
+   ============================================ */
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+}
+
+.content-wrapper {
+    flex: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: var(--spacing-2xl) var(--spacing-xl);
+}
+
+/* ============================================
+   SEÇÕES PREMIUM
+   ============================================ */
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-3xl);
+    padding-bottom: var(--spacing-xl);
+    border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+}
+
+.section-header h2 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.section-subtitle {
+    color: var(--color-gray-500);
+    font-size: var(--font-size-body);
+    margin: 0;
+}
+
+.result-actions {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+/* ============================================
+   GRID DE PARÂMETROS - LAYOUT OTIMIZADO
+   ============================================ */
+
+.parameters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-3xl);
+}
+
+.fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* ============================================
+   GRID DE KPI - LAYOUT PREMIUM
+   ============================================ */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-3xl);
+}
+
+/* ============================================
+   GRID DE ANÁLISE
+   ============================================ */
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* ============================================
+   CARDS DE RESULTADO PREMIUM
+   ============================================ */
+
+.comparison-card,
+.amortization-card,
+.analysis-card {
+    background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.comparison-card:hover,
+.amortization-card:hover,
+.analysis-card:hover {
+    box-shadow: var(--shadow-xl);
+    border-color: rgba(212, 175, 55, 0.4);
+}
+
+/* ============================================
+   CONTROLES DE TABELA
+   ============================================ */
+
+.table-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+/* ============================================
+   AÇÕES DE PARÂMETROS
+   ============================================ */
+
+.parameters-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+    justify-content: flex-end;
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.results-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+    justify-content: flex-start;
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+    margin-top: var(--spacing-3xl);
+}
+
+/* ============================================
+   RESPONSIVIDADE - TABLET
+   ============================================ */
+
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+    
+    .parameters-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+    }
+    
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .card-content {
+        padding: var(--spacing-lg);
+    }
+    
+    .fields-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-wrapper {
+        font-size: var(--font-size-small);
+    }
+    
+    .amortization-table th,
+    .amortization-table td {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-input {
+        width: 100%;
+    }
+    
+    .parameters-actions,
+    .results-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .parameters-actions button,
+    .results-actions button {
+        width: 100%;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+    
+    .result-actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* ============================================
+   RESPONSIVIDADE - MOBILE
+   ============================================ */
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+    
+    .parameters-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+    }
+    
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-header {
+        padding: var(--spacing-lg);
+    }
+    
+    .card-content {
+        padding: var(--spacing-lg);
+    }
+    
+    .card-footer {
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+    
+    .navbar-menu {
+        display: none;
+    }
+    
+    .brand-text {
+        display: none;
+    }
+    
+    .navbar-container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-pagination {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .pagination-btn {
+        width: 100%;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .footer-links {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+}
+
+/* ============================================
+   DESKTOP - LAYOUT OTIMIZADO
+   ============================================ */
+
+@media (min-width: 1200px) {
+    .parameters-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .content-wrapper {
+        padding: var(--spacing-3xl) var(--spacing-2xl);
+    }
+}

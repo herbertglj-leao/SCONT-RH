@@ -819,7 +819,7 @@
   <main class="main">
     <div class="topbar">
       <div class="title-block">
-        <h2>Controlador Licenças e Alvarás</h2>
+        <h2>Controlador Certidões e Alvarás</h2>
         
       </div>
       <div class="top-actions">
