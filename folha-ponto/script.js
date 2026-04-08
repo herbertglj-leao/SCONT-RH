@@ -262,8 +262,10 @@ function renderizarAbas() {
     state.folhas.forEach((folha, index) => {
         const btn = document.createElement('button');
         btn.className = `tab-btn ${index === state.abaAtivaIndex ? 'active' : ''}`;
-        let nomeExibicao = folha.nome;
-        if (nomeExibicao.length > 15) nomeExibicao = nomeExibicao.substring(0, 15) + '...';
+        
+        // ✅ REMOVIDA A LIMITAÇÃO DE 15 CARACTERES
+        let nomeExibicao = folha.nome; 
+        
         btn.innerHTML = `
             ${nomeExibicao}
             <span class="tab-close" onclick="event.stopPropagation(); removerFolha(${index})">×</span>
@@ -281,17 +283,26 @@ function renderizarConteudoAba() {
     const content = document.getElementById('tabsContent');
     const folha = state.folhas[state.abaAtivaIndex];
     if (!folha) return;
+    
     let optionsEmpregados = '<option value="">Selecione o Empregado...</option>';
     state.empregadosDisponiveis.forEach(emp => {
         const selected = (folha.nome === emp.nome_empregado) ? 'selected' : '';
         optionsEmpregados += `<option value="${emp.codigo_empregado}|${emp.nome_empregado}" ${selected}>${emp.codigo_empregado} - ${emp.nome_empregado}</option>`;
     });
+    
     let html = `
-        <div style="margin-bottom: 20px;">
-            <label for="selectEmpregado">Empregado *</label>
-            <select id="selectEmpregado" onchange="atualizarNomeEmpregado(this.value, ${state.abaAtivaIndex})">
-                ${optionsEmpregados}
-            </select>
+        <div style="margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #800000; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="background: #800000; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    👤
+                </div>
+                <div style="flex: 1;">
+                    <label for="selectEmpregado" style="display: block; font-size: 12px; color: #6c757d; text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Empregado Selecionado *</label>
+                    <select id="selectEmpregado" onchange="atualizarNomeEmpregado(this.value, ${state.abaAtivaIndex})" style="width: 100%; max-width: 500px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; font-weight: 500; color: #495057; background-color: white;">
+                        ${optionsEmpregados}
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table">
@@ -308,6 +319,7 @@ function renderizarConteudoAba() {
                 </thead>
                 <tbody>
     `;
+    
     folha.dados.forEach((dia, diaIndex) => {
         html += `
             <tr>
@@ -336,6 +348,19 @@ window.atualizarNomeEmpregado = function(valorSelect, folhaIndex) {
         state.folhas[folhaIndex].empregadoId = '';
     } else {
         const [id, nome] = valorSelect.split('|');
+        
+        // ✅ VALIDAÇÃO: Verificar se o empregado já existe em outra aba
+        const empregadoJaExiste = state.folhas.some((folha, index) => 
+            index !== folhaIndex && folha.empregadoId === id
+        );
+        
+        if (empregadoJaExiste) {
+            mostrarMensagem('Aviso', `O empregado ${nome} já foi adicionado nesta competência.`);
+            // Reverter a seleção no select
+            renderizarConteudoAba();
+            return;
+        }
+        
         state.folhas[folhaIndex].nome = nome;
         state.folhas[folhaIndex].empregadoId = id;
     }
@@ -470,8 +495,8 @@ async function processarFolhaComSalvamento(nomeResponsavel) {
     try {
         state.resultados = state.folhas.map(folha => calcularFolha(folha));
         
-        // Gerar UUID determinístico baseado no nome
-        const usuarioUUID = gerarUUIDDoNome(nomeResponsavel);
+        // ✅ Usar UUID padrão (já existe na tabela usuarios)
+        const usuarioUUID = '00000000-0000-0000-0000-000000000000';
         
         const dadosParaSalvar = state.folhas.map(folha => ({
             usuario_id: usuarioUUID,
@@ -489,6 +514,9 @@ async function processarFolhaComSalvamento(nomeResponsavel) {
             nome_usuario: nomeResponsavel
         }));
         
+        console.log('Salvando com UUID:', usuarioUUID);
+        console.log('Dados a enviar:', dadosParaSalvar[0]);
+        
         const { error } = await supabaseClient.from('saves').insert(dadosParaSalvar);
         if (error) throw error;
         
@@ -501,6 +529,52 @@ async function processarFolhaComSalvamento(nomeResponsavel) {
         console.error('Erro no processamento/salvamento:', erro);
         mostrarMensagem('Erro', 'Falha ao processar ou salvar os dados: ' + erro.message);
     }
+}
+
+// ✅ Função para gerar UUID v4 determinístico baseado no nome
+function gerarUUIDDoNome(nome) {
+    // Usar hash SHA-1 simulado para gerar UUID consistente
+    const hash = simpleHash(nome);
+    
+    // Formatar como UUID v4
+    const uuid = [
+        hash.substring(0, 8),
+        hash.substring(8, 12),
+        '4' + hash.substring(13, 16),  // v4
+        ((parseInt(hash.substring(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0') + hash.substring(18, 20),
+        hash.substring(20, 32)
+    ].join('-');
+    
+    return uuid;
+}
+
+// ✅ Função hash simples (determinística)
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Converter para inteiro 32-bit
+    }
+    
+    // Converter para string hexadecimal de 32 caracteres
+    let hex = Math.abs(hash).toString(16);
+    
+    // Repetir o hash para preencher 32 caracteres
+    while (hex.length < 32) {
+        hex += Math.abs(simpleHashAux(hex)).toString(16);
+    }
+    
+    return hex.substring(0, 32);
+}
+
+// ✅ Função auxiliar para hash
+function simpleHashAux(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    }
+    return hash;
 }
 
 // Função para gerar UUID determinístico baseado no nome
@@ -646,33 +720,38 @@ function calcularHorasNoturnas(e1, s1, e2, s2) {
 // --- RENDERIZAÇÃO DE RESULTADOS ---
 function renderizarConsolidado() {
     const container = document.getElementById('consolidadoContainer');
-    let html = '<h3 style="color: var(--primary-color); margin-bottom: 20px;">📊 Consolidado Geral</h3>';
+    let html = '<h3 style="color: #800000; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 20px;">📊 Consolidado Geral</h3>';
+    
     state.resultados.forEach(res => {
         html += `
-            <div class="card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
-                <div style="background: var(--secondary-color); color: white; padding: 10px 15px; font-weight: bold;">
-                    ${res.nome}
+            <div class="card" style="margin-bottom: 25px; padding: 0; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="background: linear-gradient(to right, #800000, #a52a2a); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">👤</span>
+                        <span style="font-weight: 600; font-size: 16px; letter-spacing: 0.5px;">${res.nome}</span>
+                    </div>
+                    <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;">Matrícula: ${res.empregadoId}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 15px;">
-                    <div style="background: #D4EDDA; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #C3E6CB;">
-                        <div style="font-size: 12px; color: #155724; text-transform: uppercase; font-weight: bold;">Trabalhado</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #155724; margin-top: 5px;">${res.totais.trabalhado}</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: #e5e7eb;">
+                    <div style="background: white; padding: 20px 15px; text-align: center; transition: all 0.2s ease;">
+                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Trabalhado</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.trabalhado}</div>
                     </div>
-                    <div style="background: #FFF3CD; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #FFEAA7;">
-                        <div style="font-size: 12px; color: #856404; text-transform: uppercase; font-weight: bold;">Extras 50%</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #856404; margin-top: 5px;">${res.totais.extra50}</div>
+                    <div style="background: white; padding: 20px 15px; text-align: center;">
+                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Extras 50%</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.extra50}</div>
                     </div>
-                    <div style="background: #F8D7DA; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #F5C6CB;">
-                        <div style="font-size: 12px; color: #721C24; text-transform: uppercase; font-weight: bold;">Extras 100%</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #721C24; margin-top: 5px;">${res.totais.extra100}</div>
+                    <div style="background: white; padding: 20px 15px; text-align: center;">
+                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Extras 100%</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.extra100}</div>
                     </div>
-                    <div style="background: #D1ECF1; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #BEE5EB;">
-                        <div style="font-size: 12px; color: #0C5460; text-transform: uppercase; font-weight: bold;">Adic. Noturno (Conv)</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #0C5460; margin-top: 5px;">${res.totais.noturnoConvertido}</div>
+                    <div style="background: white; padding: 20px 15px; text-align: center;">
+                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Adic. Noturno</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.noturnoConvertido}</div>
                     </div>
-                    <div style="background: #E2E3E5; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #D6D8DB;">
-                        <div style="font-size: 12px; color: #383D41; text-transform: uppercase; font-weight: bold;">Falta/Atraso</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #383D41; margin-top: 5px;">${res.totais.devido}</div>
+                    <div style="background: #fff5f5; padding: 20px 15px; text-align: center;">
+                        <div style="font-size: 11px; color: #991b1b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Falta/Atraso</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #991b1b; margin-top: 8px;">${res.totais.devido}</div>
                     </div>
                 </div>
             </div>
@@ -683,41 +762,57 @@ function renderizarConsolidado() {
 
 function renderizarTabelasDiarias() {
     const container = document.getElementById('tabelasContainer');
-    let html = '<h3 style="color: var(--primary-color); margin-bottom: 20px;">📋 Detalhes Diários</h3>';
+    let html = '<h3 style="color: #800000; margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 20px;">📋 Detalhamento Diário</h3>';
+    
     state.resultados.forEach(res => {
         let htmlTabela = `
-            <div class="card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
-                <div style="background: var(--secondary-color); color: white; padding: 10px 15px; font-weight: bold;">
-                    ${res.nome}
+            <div class="card" style="margin-bottom: 30px; padding: 0; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="background: #f3f4f6; color: #374151; padding: 12px 20px; font-weight: 600; font-size: 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #800000;">📅</span> ${res.nome}
                 </div>
                 <div class="table-container" style="margin: 0; border: none; border-radius: 0;">
-                    <table class="data-table" style="font-size: 12px;">
+                    <table class="data-table" style="font-size: 13px; width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Entradas/Saídas</th>
-                                <th>Trabalhado</th>
-                                <th>Extra 50%</th>
-                                <th>Extra 100%</th>
-                                <th>Noturno</th>
-                                <th>Falta/Atraso</th>
+                            <tr style="background-color: #ffffff; color: #6b7280; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+                                <th style="padding: 12px 15px; text-align: left; border-bottom: 2px solid #e5e7eb;">Data</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Entradas/Saídas</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Trabalhado</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Extra 50%</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Extra 100%</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Noturno</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Falta/Atraso</th>
                             </tr>
                         </thead>
                         <tbody>
         `;
-        res.dias.forEach(dia => {
+        
+        res.dias.forEach((dia, index) => {
+            const isFeriado = state.feriados.some(f => f.data === dia.data);
+            const isDomingo = dia.diaSemana === 'Dom';
+            const isDescanso = isFeriado || isDomingo;
+            
+            let rowStyle = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9fafb;';
+            if (isDescanso) rowStyle = 'background-color: #fef2f2; color: #991b1b;';
+            
+            const marcacoes = [dia.entrada1, dia.saida1, dia.entrada2, dia.saida2].filter(v => v).join(' - ') || '-';
+            const infoExtra = isFeriado ? `<span style="font-size: 10px; font-weight: bold; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">FERIADO</span>` : '';
+            
             htmlTabela += `
-                <tr>
-                    <td>${dia.data}</td>
-                    <td>${dia.entrada1}/${dia.saida1} ${dia.entrada2 ? '- ' + dia.entrada2 + '/' + dia.saida2 : ''}</td>
-                    <td>${dia.trabalhado}</td>
-                    <td>${dia.extra50}</td>
-                    <td>${dia.extra100}</td>
-                    <td>${dia.noturnoConvertido}</td>
-                    <td>${dia.devido}</td>
+                <tr style="${rowStyle} border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;">
+                    <td style="padding: 10px 15px; font-weight: 500;">
+                        ${dia.data} <span style="color: ${isDescanso ? '#991b1b' : '#9ca3af'}; font-weight: normal; font-size: 11px;">(${dia.diaSemana})</span>
+                        ${infoExtra}
+                    </td>
+                    <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${marcacoes}</td>
+                    <td style="padding: 10px 15px; text-align: center; font-weight: 600; color: ${isDescanso ? '#991b1b' : '#1f2937'};">${dia.trabalhado !== '00:00' ? dia.trabalhado : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.extra50 !== '00:00' ? dia.extra50 : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.extra100 !== '00:00' ? dia.extra100 : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.noturnoConvertido !== '00:00' ? dia.noturnoConvertido : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center; color: #991b1b; font-weight: 600;">${dia.devido !== '00:00' ? dia.devido : '-'}</td>
                 </tr>
             `;
         });
+        
         htmlTabela += `
                         </tbody>
                     </table>
@@ -726,31 +821,121 @@ function renderizarTabelasDiarias() {
         `;
         html += htmlTabela;
     });
+    
     container.innerHTML = html;
 }
 
 // --- EXPORTAÇÃO EXCEL ---
 function exportarParaExcel() {
+    if (state.resultados.length === 0) {
+        mostrarMensagem('Erro', 'Não há dados processados para exportar.');
+        return;
+    }
+
     const wb = XLSX.utils.book_new();
+    const compFormatada = state.competencia.replace('/', '-');
+    const infoCabecalho = `Empresa: ${state.empresaSelecionada.codigo_empresa} - ${state.empresaSelecionada.nome_empresa} | Competência: ${state.competencia}`;
+
+    // 1. Criar array para o Consolidado Geral
+    const dadosConsolidadoGeral = [];
+
+    // 2. Gerar abas individuais para cada empregado
     state.resultados.forEach(res => {
-        const dadosDiarios = res.dias.map(dia => ({
-            'Data': dia.data,
-            'Entrada 1': dia.entrada1,
-            'Saída 1': dia.saida1,
-            'Entrada 2': dia.entrada2,
-            'Saída 2': dia.saida2,
-            'Trabalhado': dia.trabalhado,
-            'Extra 50%': dia.extra50,
-            'Extra 100%': dia.extra100,
-            'Noturno (Conv)': dia.noturnoConvertido,
-            'Falta/Atraso': dia.devido
-        }));
+        // Adicionar ao Consolidado Geral
+        dadosConsolidadoGeral.push({
+            'Matrícula': res.empregadoId,
+            'Empregado': res.nome,
+            'Horas Trabalhadas': res.totais.trabalhado,
+            'Horas Extras 50%': res.totais.extra50,
+            'Horas Extras 100%': res.totais.extra100,
+            'Adicional Noturno': res.totais.noturnoConvertido,
+            'Faltas/Atrasos': res.totais.devido
+        });
+
+        // Preparar dados da aba individual
+        const dadosAbaIndividual = [
+            // Linha de cabeçalho com informações da empresa
+            { 'Data': infoCabecalho, 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' },
+            { 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' }, // Linha em branco
+            // Cabeçalhos reais
+            { 'Data': 'Data', 'Dia da Semana': 'Dia da Semana', 'Entradas/Saídas': 'Entradas/Saídas', 'Trabalhado': 'Trabalhado', 'Extra 50%': 'Extra 50%', 'Extra 100%': 'Extra 100%', 'Noturno': 'Noturno', 'Falta/Atraso': 'Falta/Atraso' }
+        ];
+
+        // Adicionar dias
+        res.dias.forEach(dia => {
+            const isFeriado = state.feriados.some(f => f.data === dia.data);
+            const isDomingo = dia.diaSemana === 'Dom';
+            const tipoDia = isFeriado ? 'Feriado' : (isDomingo ? 'Domingo' : dia.diaSemana);
+            const marcacoes = [dia.entrada1, dia.saida1, dia.entrada2, dia.saida2].filter(v => v).join(' - ') || '-';
+
+            dadosAbaIndividual.push({
+                'Data': dia.data,
+                'Dia da Semana': tipoDia,
+                'Entradas/Saídas': marcacoes,
+                'Trabalhado': dia.trabalhado !== '00:00' ? dia.trabalhado : '-',
+                'Extra 50%': dia.extra50 !== '00:00' ? dia.extra50 : '-',
+                'Extra 100%': dia.extra100 !== '00:00' ? dia.extra100 : '-',
+                'Noturno': dia.noturnoConvertido !== '00:00' ? dia.noturnoConvertido : '-',
+                'Falta/Atraso': dia.devido !== '00:00' ? dia.devido : '-'
+            });
+        });
+
+        // Adicionar totais no final da aba individual
+        dadosAbaIndividual.push({ 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' });
+        dadosAbaIndividual.push({
+            'Data': 'TOTAIS',
+            'Dia da Semana': '',
+            'Entradas/Saídas': '',
+            'Trabalhado': res.totais.trabalhado,
+            'Extra 50%': res.totais.extra50,
+            'Extra 100%': res.totais.extra100,
+            'Noturno': res.totais.noturnoConvertido,
+            'Falta/Atraso': res.totais.devido
+        });
+
+        // Criar a sheet individual (pulando o cabeçalho padrão do SheetJS para usar o nosso customizado)
+        const wsDiario = XLSX.utils.json_to_sheet(dadosAbaIndividual, { skipHeader: true });
+        
+        // Ajustar largura das colunas
+        wsDiario['!cols'] = [
+            { wch: 12 }, // Data
+            { wch: 15 }, // Dia da Semana
+            { wch: 25 }, // Entradas/Saídas
+            { wch: 12 }, // Trabalhado
+            { wch: 12 }, // Extra 50%
+            { wch: 12 }, // Extra 100%
+            { wch: 12 }, // Noturno
+            { wch: 12 }  // Falta/Atraso
+        ];
+
         let nomeAba = res.nome.substring(0, 31).replace(/[\/?*\[\]]/g, '');
-        const wsDiario = XLSX.utils.json_to_sheet(dadosDiarios);
         XLSX.utils.book_append_sheet(wb, wsDiario, nomeAba);
     });
-    const compParts = state.competencia.split('/');
-    const compFormatada = compParts[1] + compParts[0];
+
+    // 3. Criar aba Consolidado Geral
+    const dadosConsolidadoComCabecalho = [
+        { 'Matrícula': infoCabecalho, 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Faltas/Atrasos': '' },
+        { 'Matrícula': '', 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Faltas/Atrasos': '' },
+        { 'Matrícula': 'Matrícula', 'Empregado': 'Empregado', 'Horas Trabalhadas': 'Horas Trabalhadas', 'Horas Extras 50%': 'Horas Extras 50%', 'Horas Extras 100%': 'Horas Extras 100%', 'Adicional Noturno': 'Adicional Noturno', 'Faltas/Atrasos': 'Faltas/Atrasos' },
+        ...dadosConsolidadoGeral
+    ];
+
+    const wsConsolidado = XLSX.utils.json_to_sheet(dadosConsolidadoComCabecalho, { skipHeader: true });
+    
+    // Ajustar largura das colunas do Consolidado
+    wsConsolidado['!cols'] = [
+        { wch: 15 }, // Matrícula
+        { wch: 40 }, // Empregado
+        { wch: 18 }, // Horas Trabalhadas
+        { wch: 18 }, // Horas Extras 50%
+        { wch: 18 }, // Horas Extras 100%
+        { wch: 18 }, // Adicional Noturno
+        { wch: 18 }  // Faltas/Atrasos
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsConsolidado, "Consolidado Geral");
+
+    // 4. Salvar arquivo
     XLSX.writeFile(wb, `Folha_Ponto_${state.empresaSelecionada.codigo_empresa}_${compFormatada}.xlsx`);
 }
 
