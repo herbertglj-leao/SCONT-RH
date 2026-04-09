@@ -1251,20 +1251,20 @@ function selectCnae(codigo, descricao) {
     closeCnaeModal();
 }
 
-
 // ==========================================
-// 8. BUSCA DE CNAEs (Sem bibliotecas externas)
+// 8. BUSCA DE CNAEs (Lendo da variável global)
 // ==========================================
 window.allCnaes = [];
 window.targetCnaeInputId = '';
 
 async function openCnaeModal(targetInputId) {
+    // Se targetInputId for vazio (''), significa que abriu pela sidebar (apenas consulta)
     window.targetCnaeInputId = targetInputId;
     const modal = document.getElementById('cnaeModal');
     modal.style.display = 'flex';
 
     if (window.allCnaes.length === 0) {
-        await loadCnaesFromCSV();
+        loadCnaesFromVariable();
     } else {
         renderCnaeTable(window.allCnaes);
     }
@@ -1275,19 +1275,15 @@ function closeCnaeModal() {
     document.getElementById('searchCnaeInput').value = '';
 }
 
-async function loadCnaesFromCSV() {
+function loadCnaesFromVariable() {
     try {
-        // Tenta carregar o arquivo CSV que você deve salvar na pasta
-        const response = await fetch('cnaes.csv');
-        
-        if (!response.ok) {
-            throw new Error('Arquivo cnaes.csv não encontrado');
+        // Verifica se a variável global existe (carregada do cnaes.js)
+        if (!window.CNAE_DATA) {
+            throw new Error('Dados não encontrados. Verifique se o arquivo cnaes.js foi importado no HTML.');
         }
         
-        const csvText = await response.text();
-        
-        // Parse simples de CSV nativo
-        const lines = csvText.split('\n');
+        // Lê o texto que está na variável
+        const lines = window.CNAE_DATA.split('\n');
         const cnaes = [];
         
         // Pula o cabeçalho (i=1)
@@ -1295,16 +1291,24 @@ async function loadCnaesFromCSV() {
             const line = lines[i].trim();
             if (!line) continue;
             
-            // Divide por vírgula ou ponto e vírgula (dependendo de como o Excel salvou)
-            const separator = line.includes(';') ? ';' : ',';
-            const parts = line.split(separator);
+            // O seu arquivo usa ponto e vírgula como separador
+            const parts = line.split(';');
             
-            if (parts.length >= 2) {
-                const codigo = parts[0].replace(/"/g, '').trim();
-                const descricao = parts[1].replace(/"/g, '').trim();
+            // A estrutura do seu arquivo é:
+            // [0]Seção ; [1]Divisão ; [2]Grupo ; [3]Classe ; [4]Subclasse ; [5]Denominação
+            
+            // Só queremos as linhas que têm a Subclasse preenchida (que é o CNAE final de 7 dígitos)
+            // A Subclasse está no índice 4 (quinta coluna) e a Denominação no índice 5 (sexta coluna)
+            if (parts.length >= 6) {
+                const subclasse = parts[4].replace(/"/g, '').trim();
+                const denominacao = parts[5].replace(/"/g, '').trim();
                 
-                if (codigo && descricao) {
-                    cnaes.push({ codigo, descricao });
+                // Se a subclasse não estiver vazia, é um CNAE válido que podemos usar
+                if (subclasse !== '') {
+                    cnaes.push({ 
+                        codigo: subclasse, 
+                        descricao: denominacao 
+                    });
                 }
             }
         }
@@ -1318,7 +1322,7 @@ async function loadCnaesFromCSV() {
             <tr>
                 <td colspan="3" class="text-center" style="color: var(--danger-color); padding: 20px;">
                     <strong>Erro ao carregar a lista de CNAEs.</strong><br><br>
-                    Certifique-se de que você salvou a planilha Excel como <b>cnaes.csv</b> na mesma pasta do sistema.
+                    ${error.message}
                 </td>
             </tr>
         `;
@@ -1333,7 +1337,6 @@ function renderCnaeTable(cnaes) {
         return;
     }
 
-    // Renderiza apenas os 100 primeiros para não travar a tela
     const cnaesToRender = cnaes.slice(0, 100); 
 
     tbody.innerHTML = cnaesToRender.map(cnae => `
@@ -1342,7 +1345,7 @@ function renderCnaeTable(cnaes) {
             <td>${sanitizeOutput(cnae.descricao)}</td>
             <td style="text-align: right;">
                 <button class="btn btn-primary btn-small" onclick="selectCnae('${sanitizeOutput(cnae.codigo)}', '${sanitizeOutput(cnae.descricao).replace(/'/g, "\'")}')">
-                    Selecionar
+                    ${window.targetCnaeInputId ? 'Selecionar' : 'Copiar'}
                 </button>
             </td>
         </tr>
@@ -1370,9 +1373,20 @@ function filterCnaes() {
 }
 
 function selectCnae(codigo, descricao) {
-    const input = document.getElementById(window.targetCnaeInputId);
-    if (input) {
-        input.value = `${codigo} - ${descricao}`;
+    // Se foi aberto a partir de um input de edição, preenche o input
+    if (window.targetCnaeInputId) {
+        const input = document.getElementById(window.targetCnaeInputId);
+        if (input) {
+            input.value = `${codigo} - ${descricao}`;
+        }
+        closeCnaeModal();
+    } else {
+        // Se foi aberto pela sidebar (apenas consulta), copia para a área de transferência
+        const textoCopiar = `${codigo} - ${descricao}`;
+        navigator.clipboard.writeText(textoCopiar).then(() => {
+            showSuccess('CNAE copiado para a área de transferência!');
+        }).catch(err => {
+            console.error('Erro ao copiar:', err);
+        });
     }
-    closeCnaeModal();
 }

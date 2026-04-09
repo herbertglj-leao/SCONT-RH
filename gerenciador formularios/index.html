@@ -9,14 +9,12 @@
 <body>
     <div class="app-container">
         <!-- SIDEBAR -->
-                <!-- SIDEBAR -->
         <aside class="sidebar">
-           <div class="sidebar-header">
-    <div class="logo-container">
-        <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="company-logo">
-    </div>
-    <!-- Removi o h2 e o p porque a logo já tem o nome da empresa -->
-</div>
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="company-logo">
+                </div>
+            </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="filterByType('', this)">
                     <span class="icon">📋</span>
@@ -35,11 +33,18 @@
                     <span>Registro de Empregado</span>
                 </a>
                 <div style="height: 1px; background: var(--border-color); margin: var(--spacing-md) 0;"></div>
+                <a href="#" class="nav-item" onclick="openCnaeModal('')">
+                    <span class="icon">🔍</span>
+                    <span>Consulta CNAE</span>
+                </a>
                 <a href="historico.html" class="nav-item">
                     <span class="icon">📊</span>
                     <span>Histórico de Edições</span>
                 </a>
-              
+                <a href="documentos.html" class="nav-item">
+                    <span class="icon">📁</span>
+                    <span>Central de Documentos</span>
+                </a>
             </nav>
         </aside>
 
@@ -75,7 +80,6 @@
                         <option value="rejeitado">Rejeitado</option>
                     </select>
                 </div>
-                <!-- O filtro de tipo foi removido daqui e foi para a sidebar -->
             </section>
 
             <!-- FORMS GRID -->
@@ -95,52 +99,10 @@
         </main>
     </div>
 
-
-<!-- MODAL DE CNAEs -->
-<div id="cnaeModal" class="modal" style="display: none;">
-    <div class="modal-overlay" onclick="closeCnaeModal()"></div>
-    <div class="modal-content modal-large">
-        <div class="modal-header">
-            <h2>📋 Lista de CNAEs</h2>
-            <button class="modal-close" onclick="closeCnaeModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="filter-group" style="margin-bottom: var(--spacing-md);">
-                <input type="text" id="searchCnaeInput" class="search-input" placeholder="Buscar CNAE por código ou descrição..." onkeyup="filterCnaes()">
-            </div>
-            <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
-                <table class="history-table" id="cnaeTable">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cnaeTableBody">
-                        <tr>
-                            <td colspan="3" class="text-center">
-                                <div class="loading-spinner">
-                                    <div class="spinner"></div>
-                                    <p>Carregando CNAEs...</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeCnaeModal()">Fechar</button>
-        </div>
-    </div>
-</div>
-
-
     <!-- MODAL DE DETALHES -->
     <div id="detailsModal" class="modal" style="display: none;">
         <div class="modal-overlay" onclick="closeModal()"></div>
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
                 <h2 id="modalTitle">Detalhes do Formulário</h2>
                 <button class="modal-close" onclick="closeModal()">✕</button>
@@ -150,13 +112,13 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-                <button class="btn btn-primary" onclick="editForm()">Editar</button>
+                <button class="btn btn-primary" onclick="editFormCard(window.currentFormId)">Editar</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL DE EDIÇÃO -->
-    <div id="editModal" class="modal" style="display: none;">
+    <div id="editModal" class="modal" style="display: none; z-index: 1000;">
         <div class="modal-overlay" onclick="closeEditModal()"></div>
         <div class="modal-content modal-large">
             <div class="modal-header">
@@ -174,7 +136,7 @@
     </div>
 
     <!-- MODAL DE DOCUMENTOS -->
-    <div id="documentsModal" class="modal" style="display: none;">
+    <div id="documentsModal" class="modal" style="display: none; z-index: 1000;">
         <div class="modal-overlay" onclick="closeDocumentsModal()"></div>
         <div class="modal-content modal-large">
             <div class="modal-header">
@@ -193,13 +155,12 @@
         </div>
     </div>
 
-
     <!-- MODAL DE CNAEs -->
-    <div id="cnaeModal" class="modal" style="display: none;">
+    <div id="cnaeModal" class="modal" style="display: none; z-index: 1100;"> <!-- z-index maior para ficar acima do modal de edição -->
         <div class="modal-overlay" onclick="closeCnaeModal()"></div>
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>📋 Lista de CNAEs</h2>
+                <h2>📋 Consulta de CNAEs</h2>
                 <button class="modal-close" onclick="closeCnaeModal()">✕</button>
             </div>
             <div class="modal-body">
@@ -234,9 +195,9 @@
         </div>
     </div>
 
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="utils.js"></script>
+    <script src="cnaes.js"></script> <!-- Arquivo com a variável window.CNAE_DATA -->
     <script src="app.js"></script>
     <script>
         // Inicializar ao carregar
