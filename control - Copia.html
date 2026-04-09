@@ -804,11 +804,11 @@
       </div>
     </div>
     <nav class="nav">
-      <button class="active" onclick="showSection('dashboard')">Dashboard <span>Visão geral</span></button>
-      <button onclick="showSection('documentos')">Documentos <span>Licenças e Alvarás</span></button>
+      <button class="active" onclick="showSection('dashboard')">Dashboard</button>
+      <button onclick="showSection('documentos')">Licenças </button>
       <button onclick="showSection('processos')">Processos</button>
-      <button onclick="showSection('clientes')">Clientes <span>Estabelecimentos</span></button>
-      <button onclick="showSection('relatorios')">Relatórios Gerenciais <span>KPIs e análises</span></button>
+      <button onclick="showSection('clientes')">Clientes</button>
+      <button onclick="showSection('relatorios')">Relatórios Gerenciais</button>
       <button onclick="showSection('config')">Configurações</button>
     </nav>
     <div class="sidebar-card">
@@ -819,7 +819,7 @@
   <main class="main">
     <div class="topbar">
       <div class="title-block">
-        <h2>Controlador Licenças e Alvarás</h2>
+        <h2>Controlador de Licenças</h2>
         
       </div>
       <div class="top-actions">
@@ -832,7 +832,7 @@
     <div id="dashboard" class="section-view">
       <section class="grid-kpis">
         <div class="card kpi">
-          <small>Documentos ativos</small>
+          <small>Licenças ativas</small>
           <strong id="kpiAtivos">0</strong>
           <div class="trend">Base operacional saudável</div>
         </div>
@@ -858,7 +858,7 @@
           <div class="panel-header">
             <div>
               <h3>Documentos Críticos</h3>
-              <p>Licenças e alvarás que requerem ação imediata.</p>
+              <p>Licenças que requerem ação imediata.</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -896,13 +896,13 @@
       </section>
     </div>
 
-    <!-- DOCUMENTOS (LICENÇAS E ALVARÁS UNIFICADOS) -->
+    <!-- DOCUMENTOS (Licenças UNIFICADOS) -->
     <div id="documentos" class="section-view hidden">
       <section class="card panel">
         <div class="panel-header">
           <div>
             <h3>Gerenciamento de Documentos</h3>
-            <p>Licenças e Alvarás - Controle centralizado de certificações.</p>
+            <p>Licenças - Controle centralizado de certificações.</p>
           </div>
           <div class="top-actions">
             <button class="btn btn-secondary" id="refreshDocumentos">Atualizar dados</button>
@@ -955,7 +955,7 @@
         <div class="panel-header">
           <div>
             <h3>Gerenciamento de Processos</h3>
-            <p>Acompanhamento do andamento de renovações de licenças e alvarás.</p>
+            <p>Acompanhamento do andamento de renovações de Licenças.</p>
           </div>
           <div class="top-actions">
             <button class="btn btn-secondary" id="refreshProcessos">Atualizar dados</button>
@@ -1492,7 +1492,7 @@ function showSection(sectionId) {
       console.log('📊 Carregando Dashboard...');
       loadDashboard();
     } else if (sectionId === 'documentos') {
-      console.log('📄 Carregando Documentos...');
+      console.log('📄 Carregando Licenças...');
       fetchDocumentos();
     } else if (sectionId === 'processos') {
       console.log('📋 Carregando Processos...');
@@ -1800,97 +1800,162 @@ function filterDocumentosPorTipo(tipo) {
   });
 }
 
-function openNewDocumento() {
+async function openNewDocumento() {
   const modal = document.getElementById('recordModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
   
-  modalTitle.textContent = 'Novo Documento';
+  modalTitle.textContent = 'Nova Licença';
   
-  modalBody.innerHTML = `
-    <form onsubmit="saveDocumento(event)">
-      <div class="form-grid">
-        <div class="field">
-          <label>Tipo de Documento</label>
-          <select id="tipoDoc" required>
-            <option value="licenca">Licença</option>
-            <option value="alvara">Alvará</option>
-          </select>
+  try {
+    const { data: clientes } = await supabaseClient
+      .from('clientes')
+      .select('nome')
+      .order('nome');
+    
+    
+    
+    modalBody.innerHTML = `
+      <form onsubmit="saveDocumento(event)">
+        <div class="form-grid">
+          
+          <div class="field full">
+  <label>🏢 Cliente *</label>
+   <input type="text" id="tipo"  required>
+  
+</div>
+          <div class="field">
+            <label>Tipo de Operação *</label>
+            <select id="tipoOperacao" required onchange="toggleCamposDocumento()">
+              <option value="">Selecione...</option>
+              <option value="emissao">Emissão</option>
+              <option value="renovacao">Renovação</option>
+            </select>
+          </div>
+          
+          <div class="field">
+            <label>Tipo de Licença *</label>
+            <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
+          </div>
+          
+          <div class="field" id="campoNumero">
+            <label>Número *</label>
+            <input type="text" id="numero" required>
+          </div>
+          
+          <div class="field" id="campoDataEmissao">
+            <label>Data de Emissão *</label>
+            <input type="date" id="dataEmissao" required>
+          </div>
+          
+          <div class="field" id="campoDataValidade">
+            <label>Data de Validade *</label>
+            <input type="date" id="dataValidade" required>
+          </div>
+          
+          <div class="field">
+            <label>Órgão Emissor</label>
+            <input type="text" id="orgaoEmissor" placeholder="Ex: Prefeitura Municipal">
+          </div>
+          
+          <div class="field">
+            <label>Responsável</label>
+            <input type="text" id="responsavel" placeholder="Nome do responsável">
+          </div>
+          
+          <div class="field full">
+            <label>Observações</label>
+            <textarea id="observacoes" placeholder="Observações adicionais..."></textarea>
+          </div>
+          
+          <div class="field full">
+            <button type="submit" class="btn btn-primary">Salvar Licença</button>
+          </div>
         </div>
-        <div class="field full">
-          <label>Estabelecimento</label>
-          <input type="text" id="estabelecimento" required>
-        </div>
-        <div class="field">
-          <label>Tipo específico</label>
-          <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
-        </div>
-        <div class="field">
-          <label>Número</label>
-          <input type="text" id="numero" required>
-        </div>
-        <div class="field">
-          <label>Data de emissão</label>
-          <input type="date" id="dataEmissao" required>
-        </div>
-        <div class="field">
-          <label>Data de validade</label>
-          <input type="date" id="dataValidade" required>
-        </div>
-        <div class="field">
-          <label>Órgão emissor</label>
-          <input type="text" id="orgaoEmissor" required>
-        </div>
-        <div class="field">
-          <label>Responsável</label>
-          <input type="text" id="responsavel" required>
-        </div>
-        <div class="field full">
-          <label>Observações</label>
-          <textarea id="observacoes"></textarea>
-        </div>
-        <div class="field full">
-          <button type="submit" class="btn btn-primary">Salvar documento</button>
-        </div>
+      </form>
+    `;
+    
+    modal.classList.add('active');
+    console.log('✓ Formulário de nova licença carregado');
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar estabelecimentos:', error);
+    modalBody.innerHTML = `
+      <div style="text-align:center;padding:20px;color:var(--danger);">
+        <p>❌ Erro ao carregar estabelecimentos</p>
+        <p style="font-size:.9rem;">${error.message}</p>
       </div>
-    </form>
-  `;
+    `;
+    modal.classList.add('active');
+  }
+}
+
+// Nova função para controlar visibilidade dos campos
+function toggleCamposDocumento() {
+  const tipoOperacao = document.getElementById('tipoOperacao').value;
+  const campoNumero = document.getElementById('campoNumero');
+  const campoDataEmissao = document.getElementById('campoDataEmissao');
+  const campoDataValidade = document.getElementById('campoDataValidade');
   
-  modal.classList.add('active');
+  if (tipoOperacao === 'emissao') {
+    // Emissão: ocultar número, data emissão e validade
+    campoNumero.style.display = 'none';
+    campoDataEmissao.style.display = 'none';
+    campoDataValidade.style.display = 'none';
+    
+    // Remover required
+    document.getElementById('numero').removeAttribute('required');
+    document.getElementById('dataEmissao').removeAttribute('required');
+    document.getElementById('dataValidade').removeAttribute('required');
+    
+    console.log('📝 Modo Emissão: campos número, data emissão e validade ocultos');
+  } else if (tipoOperacao === 'renovacao') {
+    // Renovação: mostrar todos os campos
+    campoNumero.style.display = 'block';
+    campoDataEmissao.style.display = 'block';
+    campoDataValidade.style.display = 'block';
+    
+    // Adicionar required
+    document.getElementById('numero').setAttribute('required', 'required');
+    document.getElementById('dataEmissao').setAttribute('required', 'required');
+    document.getElementById('dataValidade').setAttribute('required', 'required');
+    
+    console.log('🔄 Modo Renovação: todos os campos visíveis');
+  }
 }
 
 async function saveDocumento(event) {
   event.preventDefault();
   
-  const tipoDoc = document.getElementById('tipoDoc').value;
-  const table = tipoDoc === 'licenca' ? 'licencas' : 'alvaras';
+  const tipoOperacao = document.getElementById('tipoOperacao').value;
   
   const data = {
     estabelecimento: document.getElementById('estabelecimento').value,
     tipo: document.getElementById('tipo').value,
-    numero: document.getElementById('numero').value,
-    data_emissao: document.getElementById('dataEmissao').value,
-    data_validade: document.getElementById('dataValidade').value,
-    orgao_emissor: document.getElementById('orgaoEmissor').value,
-    responsavel: document.getElementById('responsavel').value,
+    numero: tipoOperacao === 'emissao' ? 'PENDENTE' : document.getElementById('numero').value,
+    data_emissao: tipoOperacao === 'emissao' ? new Date().toISOString().split('T')[0] : document.getElementById('dataEmissao').value,
+    data_validade: tipoOperacao === 'emissao' ? null : document.getElementById('dataValidade').value,
+    orgao_emissor: document.getElementById('orgaoEmissor').value || 'Não informado',
+    responsavel: document.getElementById('responsavel').value || 'Não informado',
     observacoes: document.getElementById('observacoes').value,
-    tipo_tabela: table
+    tipo_operacao: tipoOperacao
   };
   
   try {
-    const { error } = await supabaseClient.from(table).insert([data]);
+    console.log('💾 Salvando licença:', data);
+    const { error } = await supabaseClient.from('licencas').insert([data]);
     if (error) throw error;
     
-    showAlert('Documento salvo com sucesso!', 'success');
+    console.log('✓ Licença salva com sucesso');
+    showAlert('✓ Licença salva com sucesso!', 'success');
     closeModal();
     fetchDocumentos();
     loadDashboard();
   } catch (error) {
-    console.error('Erro ao salvar documento:', error);
-    showAlert('Erro ao salvar documento', 'error');
+    console.error('❌ Erro ao salvar licença:', error);
+    showAlert('❌ Erro ao salvar licença: ' + error.message, 'error');
   }
 }
-
 // 
 // PROCESSOS
 // 
@@ -2124,11 +2189,7 @@ async function openNewProcesso() {
       .select('id, numero, tipo, estabelecimento')
       .order('estabelecimento', { ascending: true });
     
-    // Buscar clientes para dropdown de estabelecimentos
-    const { data: clientes } = await supabaseClient
-      .from('clientes')
-      .select('nome')
-      .order('nome', { ascending: true });
+   
     
     const allDocs = [
       ...(licencas || []).map(d => ({ 
@@ -2165,36 +2226,24 @@ async function openNewProcesso() {
       </option>`
     ).join('');
     
-    // Gerar options do select de estabelecimentos
-    const optionsEstabHtml = (clientes || []).map(cliente => 
-      `<option value="${cliente.nome}">${cliente.nome}</option>`
-    ).join('');
+   
     
     // Renderizar formulário
     modalBody.innerHTML = `
       <form onsubmit="saveProcesso(event)">
         <div class="form-grid">
           <div class="field full">
-            <label>📄 Documento Associado *</label>
-            <select id="documentoVinculado" required style="border: 2px solid var(--brand);" onchange="atualizarTipoDocumento()">
-              <option value="">-- Selecione um documento --</option>
-              ${optionsDocHtml}
-            </select>
-            <small style="color: var(--muted); margin-top: 4px; display: block;">
-              Total de ${allDocs.length} documento(s) disponível(is)
-            </small>
-          </div>
+  <label>📄 Licença Associada *</label>
+  <select id="documentoVinculado" required style="border: 2px solid var(--brand); max-height: 200px;" onchange="atualizarTipoDocumento()">
+    <option value="">-- Selecione uma licença --</option>
+    ${optionsDocHtml}
+  </select>
+  <small style="color: var(--muted); margin-top: 4px; display: block;">
+    ${allDocs.length} licença(s) disponível(is)
+  </small>
+</div>
           
-          <div class="field full">
-            <label>🏢 Estabelecimento *</label>
-            <select id="estabelecimentoProcesso" required style="border: 2px solid var(--brand);">
-              <option value="">-- Selecione um estabelecimento --</option>
-              ${optionsEstabHtml}
-            </select>
-            <small style="color: var(--muted); margin-top: 4px; display: block;">
-              Total de ${clientes?.length || 0} estabelecimento(s) cadastrado(s)
-            </small>
-          </div>
+         
           
           <div class="field full">
             <label>Número do Processo *</label>
