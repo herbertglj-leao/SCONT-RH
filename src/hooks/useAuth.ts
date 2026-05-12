@@ -1,0 +1,50 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { Profile } from '@/types'
+
+interface AuthState {
+  profile: Profile | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signOut: () => Promise<void>
+}
+
+export function useAuth(): AuthState {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) loadProfile(data.session.user.id)
+      else setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) loadProfile(session.user.id)
+      else { setProfile(null); setLoading(false) }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function loadProfile(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    setProfile(data ?? null)
+    setLoading(false)
+  }
+
+  async function signIn(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error?.message ?? null }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
+  return { profile, loading, signIn, signOut }
+}
