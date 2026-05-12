@@ -15,6 +15,9 @@ import { IRQExecutionsPage } from '@/pages/irq/IRQExecutionsPage'
 import { FieldSelectPage } from '@/pages/field/FieldSelectPage'
 import { FieldFormPage } from '@/pages/field/FieldFormPage'
 import { FieldSuccessPage } from '@/pages/field/FieldSuccessPage'
+import { FormsListPage } from '@/pages/forms/FormsListPage'
+import { FormDetailPage } from '@/pages/forms/FormDetailPage'
+import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import type { UserRole } from '@/types'
 
@@ -51,14 +54,17 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { path: '/',                           element: <HomePage /> },
-      { path: '/contracts',                  element: <ContractsListPage /> },
-      { path: '/contracts/new',              element: <ContractFormPage /> },
-      { path: '/contracts/:id',              element: <ContractDetailPage /> },
-      { path: '/contracts/:id/edit',         element: <ContractFormPage /> },
-      { path: '/maintenance',                element: <MaintenancePlansPage /> },
-      { path: '/maintenance/executions',     element: <MaintenanceExecutionsPage /> },
-      { path: '/irq',                        element: <IRQExecutionsPage /> },
+      { path: '/',                        element: <HomePage /> },
+      { path: '/contracts',               element: <ContractsListPage /> },
+      { path: '/contracts/new',           element: <ContractFormPage /> },
+      { path: '/contracts/:id',           element: <ContractDetailPage /> },
+      { path: '/contracts/:id/edit',      element: <ContractFormPage /> },
+      { path: '/maintenance',             element: <MaintenancePlansPage /> },
+      { path: '/maintenance/executions',  element: <MaintenanceExecutionsPage /> },
+      { path: '/irq',                     element: <IRQExecutionsPage /> },
+      { path: '/forms',                   element: <FormsListPage /> },
+      { path: '/forms/:id',               element: <FormDetailPage /> },
+      { path: '/dashboard',               element: <DashboardPage /> },
       {
         element: <RequireAuth roles={['admin']} />,
         children: [
