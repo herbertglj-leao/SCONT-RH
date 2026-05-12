@@ -90,6 +90,17 @@ export interface MaintenanceExecution {
   asset?: Pick<Asset, 'id' | 'name' | 'location'>
 }
 
+export interface MaintenanceHistory {
+  id: string
+  execution_id: string
+  changed_by: string | null
+  changed_at: string
+  field_name: string
+  old_value: string | null
+  new_value: string | null
+  changer?: { full_name: string | null; role: UserRole }
+}
+
 export interface OfflinePendingSubmission {
   localId: string
   plan_id: string

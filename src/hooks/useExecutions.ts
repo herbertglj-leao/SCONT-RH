@@ -92,3 +92,39 @@ export function useUpdateExecutionStatus() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['executions'] }),
   })
 }
+
+export function useAllExecutions() {
+  const { profile } = useAuth()
+
+  return useQuery({
+    queryKey: ['executions', 'all', profile?.id, profile?.role],
+    queryFn: async (): Promise<MaintenanceExecution[]> => {
+      let query = supabase
+        .from('maintenance_executions')
+        .select('*, plan:maintenance_plans(id,title,plan_type), asset:assets(id,name,location)')
+        .order('created_at', { ascending: false })
+
+      if (profile?.role === 'contratada') {
+        const contractsRes = await supabase
+          .from('contracts')
+          .select('id')
+          .eq('contractor_profile_id', profile.id)
+        const contractIds = (contractsRes.data ?? []).map(c => c.id)
+        if (contractIds.length === 0) return []
+
+        const assetsRes = await supabase
+          .from('assets')
+          .select('id')
+          .in('contract_id', contractIds)
+        const ids = (assetsRes.data ?? []).map(a => a.id)
+        if (ids.length === 0) return []
+        query = query.in('asset_id', ids)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return (data ?? []) as MaintenanceExecution[]
+    },
+    enabled: !!profile,
+  })
+}
