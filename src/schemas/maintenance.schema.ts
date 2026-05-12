@@ -14,7 +14,7 @@ export const planSchema = z.object({
   plan_type: z.enum(['preventiva', 'irq']),
   frequency: z.string().min(1, 'Frequência obrigatória'),
   next_due: z.string().nullable().optional(),
-  template_fields: z.array(templateFieldSchema).default([]),
+  template_fields: z.array(templateFieldSchema),
 })
 
 export type PlanFormData = z.infer<typeof planSchema>
@@ -25,7 +25,7 @@ export const fieldSubmitSchema = z.object({
   plan_type: z.enum(['preventiva', 'irq']),
   os_number: z.string().min(1, 'Número da OS obrigatório'),
   psa_item: z.string().min(1, 'Item da PSA obrigatório'),
-  form_data: z.record(z.unknown()),
+  form_data: z.record(z.string(), z.unknown()),
 })
 
 export type FieldSubmitData = z.infer<typeof fieldSubmitSchema>

@@ -9,6 +9,12 @@ import { AccessManagementPage } from '@/pages/admin/AccessManagementPage'
 import { ContractsListPage } from '@/pages/contracts/ContractsListPage'
 import { ContractDetailPage } from '@/pages/contracts/ContractDetailPage'
 import { ContractFormPage } from '@/pages/contracts/ContractFormPage'
+import { MaintenancePlansPage } from '@/pages/maintenance/MaintenancePlansPage'
+import { MaintenanceExecutionsPage } from '@/pages/maintenance/MaintenanceExecutionsPage'
+import { IRQExecutionsPage } from '@/pages/irq/IRQExecutionsPage'
+import { FieldSelectPage } from '@/pages/field/FieldSelectPage'
+import { FieldFormPage } from '@/pages/field/FieldFormPage'
+import { FieldSuccessPage } from '@/pages/field/FieldSuccessPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import type { UserRole } from '@/types'
 
@@ -36,14 +42,23 @@ function RequireAuth({ roles }: { roles?: UserRole[] }) {
 export const router = createBrowserRouter([
   { path: '/login',    element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+
+  // Public field operator routes (no auth required)
+  { path: '/field/select',       element: <FieldSelectPage /> },
+  { path: '/field/form/:planId', element: <FieldFormPage /> },
+  { path: '/field/success',      element: <FieldSuccessPage /> },
+
   {
     element: <RequireAuth />,
     children: [
-      { path: '/',                    element: <HomePage /> },
-      { path: '/contracts',           element: <ContractsListPage /> },
-      { path: '/contracts/new',       element: <ContractFormPage /> },
-      { path: '/contracts/:id',       element: <ContractDetailPage /> },
-      { path: '/contracts/:id/edit',  element: <ContractFormPage /> },
+      { path: '/',                           element: <HomePage /> },
+      { path: '/contracts',                  element: <ContractsListPage /> },
+      { path: '/contracts/new',              element: <ContractFormPage /> },
+      { path: '/contracts/:id',              element: <ContractDetailPage /> },
+      { path: '/contracts/:id/edit',         element: <ContractFormPage /> },
+      { path: '/maintenance',                element: <MaintenancePlansPage /> },
+      { path: '/maintenance/executions',     element: <MaintenanceExecutionsPage /> },
+      { path: '/irq',                        element: <IRQExecutionsPage /> },
       {
         element: <RequireAuth roles={['admin']} />,
         children: [
