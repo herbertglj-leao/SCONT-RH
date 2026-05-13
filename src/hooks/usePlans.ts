@@ -13,7 +13,8 @@ export function usePlans(assetId?: string, planType?: PlanType) {
           *,
           asset:assets(id,name,type,location),
           periodicity:periodicities(id,name,interval_days),
-          company:companies(id,name)
+          company:companies(id,name),
+          forms_catalog:forms_catalog(id,label,path)
         `)
         .order('created_at', { ascending: false })
 
@@ -37,7 +38,8 @@ export function usePlan(id: string) {
           *,
           asset:assets(id,name,type,location),
           periodicity:periodicities(id,name,interval_days),
-          company:companies(id,name)
+          company:companies(id,name),
+          forms_catalog:forms_catalog(id,label,path)
         `)
         .eq('id', id)
         .single()
@@ -52,13 +54,13 @@ function sanitizePlan(data: PlanFormData) {
   return {
     title:          data.title,
     plan_type:      data.plan_type,
-    periodicity_id: data.periodicity_id || null,
-    asset_id:       data.asset_id       || null,
-    company_id:     data.company_id     || null,
-    sistema_id:     data.sistema_id     || null,
-    frequency:      data.frequency      || null,
-    form_url:       data.form_url       || null,
-    template_fields: data.template_fields,
+    periodicity_id:   data.periodicity_id   || null,
+    asset_id:         data.asset_id         || null,
+    company_id:       data.company_id       || null,
+    sistema_id:       data.sistema_id       || null,
+    frequency:        data.frequency        || null,
+    forms_catalog_id: data.forms_catalog_id || null,
+    template_fields:  data.template_fields,
   }
 }
 

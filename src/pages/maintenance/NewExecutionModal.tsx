@@ -144,7 +144,11 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
   const equipmentOptions = (equipmentList ?? []).map(e => ({ value: e.id, label: e.tag ? `${e.name} (${e.tag})` : e.name }))
 
   async function onHeaderValid(data: HeaderForm) {
-    if (selectedPlan?.form_url) {
+    const formPath = selectedPlan?.forms_catalog?.path ?? null
+    const hasTemplateFields = (selectedPlan?.template_fields ?? []).length > 0
+
+    // Plano com formulário HTML externo
+    if (formPath) {
       setSaving(true)
       setServerError(null)
       try {
@@ -158,9 +162,9 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
           psa_item:       data.psa_item,
           scheduled_date: data.scheduled_date,
         })
-        const base = selectedPlan.form_url!.startsWith('/')
-          ? window.location.origin + selectedPlan.form_url
-          : selectedPlan.form_url!
+        const base = formPath.startsWith('/')
+          ? window.location.origin + formPath
+          : formPath
         const link = `${base}?id=${executionId}`
         setGeneratedLink(link)
         setStep('link')
@@ -172,11 +176,37 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
       }
       return
     }
-    setStep('form')
-    const initial: Record<string, unknown> = {}
-    for (const f of selectedPlan?.template_fields ?? []) initial[f.id] = ''
-    setFormData(prev => ({ ...initial, ...prev }))
-    void data
+
+    // Plano com campos de template inline
+    if (hasTemplateFields) {
+      setStep('form')
+      const initial: Record<string, unknown> = {}
+      for (const f of selectedPlan?.template_fields ?? []) initial[f.id] = ''
+      setFormData(prev => ({ ...initial, ...prev }))
+      return
+    }
+
+    // Plano sem formulário nem template — cria OS diretamente
+    setSaving(true)
+    setServerError(null)
+    try {
+      await submit.mutateAsync({
+        plan_id:        data.plan_id,
+        company_id:     data.company_id,
+        equipment_id:   data.equipment_id,
+        locality_id:    data.locality_id,
+        plan_type:      planType,
+        os_number:      data.os_number,
+        psa_item:       data.psa_item,
+        scheduled_date: data.scheduled_date,
+        form_data:      {},
+      })
+      onClose()
+    } catch (e) {
+      setServerError(e instanceof Error ? e.message : 'Erro ao criar OS')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleFinalSubmit() {
@@ -277,11 +307,19 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
           />
 
           {selectedPlan && (
-            <div className="bg-blue-50 rounded-xl px-4 py-3 text-sm text-blue-800 space-y-0.5">
+            <div className={`rounded-xl px-4 py-3 text-sm space-y-0.5 ${
+              selectedPlan.forms_catalog ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'
+            }`}>
               {selectedPlan.periodicity && (
                 <p><span className="font-semibold">Periodicidade:</span> {selectedPlan.periodicity.name}</p>
               )}
-              <p><span className="font-semibold">Campos no formulário:</span> {selectedPlan.template_fields?.length ?? 0}</p>
+              {selectedPlan.forms_catalog ? (
+                <p><span className="font-semibold">Formulário:</span> {selectedPlan.forms_catalog.label ?? selectedPlan.forms_catalog.path}</p>
+              ) : (selectedPlan.template_fields?.length ?? 0) > 0 ? (
+                <p><span className="font-semibold">Campos no formulário:</span> {selectedPlan.template_fields.length}</p>
+              ) : (
+                <p className="font-semibold">⚠ Nenhum formulário vinculado a este plano. Edite o plano e selecione um formulário.</p>
+              )}
             </div>
           )}
 
@@ -320,11 +358,13 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancelar</Button>
             <Button type="submit" loading={saving} className="flex-1">
-              {selectedPlan?.form_url
+              {selectedPlan?.forms_catalog?.path
                 ? 'Criar OS e abrir formulário'
-                : selectedPlan
-                  ? `Preencher formulário (${selectedPlan.template_fields?.length ?? 0} campos)`
-                  : 'Próximo'}
+                : (selectedPlan?.template_fields?.length ?? 0) > 0
+                  ? `Preencher formulário (${selectedPlan!.template_fields.length} campos)`
+                  : selectedPlan
+                    ? 'Criar OS'
+                    : 'Próximo'}
             </Button>
           </div>
         </form>

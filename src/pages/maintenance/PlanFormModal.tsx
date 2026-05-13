@@ -41,7 +41,7 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
     title: '',
     plan_type: 'preventiva',
     frequency: null,
-    form_url: null,
+    forms_catalog_id: null,
     template_fields: [],
   }
 
@@ -55,7 +55,7 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
           title: initial.title,
           plan_type: initial.plan_type,
           frequency: initial.frequency ?? null,
-          form_url: initial.form_url ?? null,
+          forms_catalog_id: initial.forms_catalog_id ?? null,
           template_fields: initial.template_fields,
         }
       : defaultValues,
@@ -78,7 +78,7 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
               title: initial.title,
               plan_type: initial.plan_type,
               frequency: initial.frequency ?? null,
-              form_url: initial.form_url ?? null,
+              forms_catalog_id: initial.forms_catalog_id ?? null,
               template_fields: initial.template_fields,
             }
           : defaultValues,
@@ -123,7 +123,7 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
             ]}
             error={errors.plan_type?.message}
             {...register('plan_type', {
-              onChange: () => { setValue('form_url', null); setShowFormPicker(false) },
+              onChange: () => { setValue('forms_catalog_id', ''); setShowFormPicker(false) },
             })}
           />
           <Select
@@ -145,16 +145,19 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
         {/* Form file picker */}
         <div>
           <p className="text-xs font-semibold text-gray-700 mb-1">Formulário vinculado</p>
-          {watch('form_url') ? (
+          {watch('forms_catalog_id') ? (
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
               <FileText size={14} className="text-blue-500 shrink-0" />
               <span className="flex-1 text-sm text-blue-800 font-medium truncate">
-                {availableForms.find(f => f.path === watch('form_url'))?.label ?? watch('form_url')}
+                {availableForms.find(f => f.id === watch('forms_catalog_id'))?.label ?? watch('forms_catalog_id')}
+              </span>
+              <span className="text-xs text-blue-400 font-mono truncate max-w-[200px]">
+                {availableForms.find(f => f.id === watch('forms_catalog_id'))?.path}
               </span>
               <button
                 type="button"
-                onClick={() => { setValue('form_url', ''); setShowFormPicker(false) }}
-                className="text-blue-400 hover:text-blue-600"
+                onClick={() => { setValue('forms_catalog_id', ''); setShowFormPicker(false) }}
+                className="text-blue-400 hover:text-blue-600 shrink-0"
               >
                 <X size={14} />
               </button>
@@ -172,15 +175,15 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
               <ChevronDown size={14} className={showFormPicker ? 'rotate-180' : ''} />
             </button>
           )}
-          {showFormPicker && !watch('form_url') && (
+          {showFormPicker && !watch('forms_catalog_id') && (
             <div className="mt-1 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
               {availableForms.length === 0 ? (
                 <p className="text-xs text-gray-400 px-3 py-3 text-center">Nenhum formulário cadastrado para este tipo de plano</p>
               ) : availableForms.map(f => (
                 <button
-                  key={f.path}
+                  key={f.id}
                   type="button"
-                  onClick={() => { setValue('form_url', f.path); setShowFormPicker(false) }}
+                  onClick={() => { setValue('forms_catalog_id', f.id); setShowFormPicker(false) }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-metro-orange/5 transition text-left border-b border-gray-100 last:border-0"
                 >
                   <FileText size={14} className="text-metro-orange shrink-0" />
@@ -192,7 +195,6 @@ export function PlanFormModal({ open, onClose, onSubmit, initial }: Props) {
               ))}
             </div>
           )}
-          {errors.form_url && <p className="text-xs text-red-500 mt-1">{errors.form_url.message}</p>}
         </div>
 
         {/* Template fields */}

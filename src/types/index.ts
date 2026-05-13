@@ -140,12 +140,13 @@ export interface MaintenancePlan {
   frequency: string | null
   next_due: string | null
   template_fields: TemplateField[]
-  form_url: string | null
+  forms_catalog_id: string | null
   created_at: string
   asset?: Pick<Asset, 'id' | 'name' | 'type' | 'location'>
   periodicity?: Pick<Periodicity, 'id' | 'name' | 'interval_days'>
   company?: Pick<Company, 'id' | 'name'>
   sistema?: Pick<Sistema, 'id' | 'name'>
+  forms_catalog?: { id: string; label: string; path: string } | null
 }
 
 export interface MaintenanceExecution {
@@ -166,9 +167,8 @@ export interface MaintenanceExecution {
   executed_by: string | null
   form_data: Record<string, unknown>
   created_at: string
-  plan?: Pick<MaintenancePlan, 'id' | 'title' | 'plan_type' | 'form_url'> & { template_fields: TemplateField[] }
+  plan?: Pick<MaintenancePlan, 'id' | 'title' | 'plan_type'> & { template_fields: TemplateField[]; forms_catalog?: { id: string; path: string } | null }
   locality?: Pick<Locality, 'id' | 'name'>
-  asset?: Pick<Asset, 'id' | 'name' | 'location'>
   equipment?: Pick<Equipment, 'id' | 'name' | 'tag'>
 }
 

@@ -15,11 +15,7 @@ export const planSchema = z.object({
   title: z.string().min(3, 'Título obrigatório'),
   plan_type: z.enum(['preventiva', 'irq']),
   frequency: z.string().nullable().optional(),
-  form_url: z.string()
-    .refine(v => !v || v.startsWith('/') || v.startsWith('http://') || v.startsWith('https://'), {
-      message: 'Informe uma URL (https://...) ou um caminho relativo (/forms/...)',
-    })
-    .nullable().optional().or(z.literal('')),
+  forms_catalog_id: z.string().uuid().nullable().optional().or(z.literal('')),
   template_fields: z.array(templateFieldSchema),
 })
 

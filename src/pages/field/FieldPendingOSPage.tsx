@@ -22,10 +22,11 @@ export function FieldPendingOSPage() {
   })
 
   function openForm(ex: typeof filtered[0]) {
-    if (ex.plan?.form_url) {
-      const base = ex.plan.form_url.startsWith('/')
-        ? window.location.origin + ex.plan.form_url
-        : ex.plan.form_url
+    const formPath = ex.plan?.forms_catalog?.path ?? null
+    if (formPath) {
+      const base = formPath.startsWith('/')
+        ? window.location.origin + formPath
+        : formPath
       window.open(`${base}?id=${ex.id}`, '_blank', 'noopener,noreferrer')
     } else {
       navigate(`/field/form/${ex.plan_id}?executionId=${ex.id}&type=${ex.plan_type}`)

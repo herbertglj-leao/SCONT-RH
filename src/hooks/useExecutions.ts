@@ -17,7 +17,7 @@ export function useExecutions(planType?: PlanType) {
     queryFn: async (): Promise<MaintenanceExecution[]> => {
       let query = supabase
         .from('maintenance_executions')
-        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,form_url,company_id), locality:localities(id,name), asset:assets(id,name,location), equipment:equipment(id,name,tag)')
+        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,company_id,forms_catalog:forms_catalog(id,path)), locality:localities(id,name), equipment:equipment(id,name,tag)')
         .order('created_at', { ascending: false })
 
       if (planType) query = query.eq('plan_type', planType)
@@ -41,7 +41,7 @@ export function useExecution(id: string) {
     queryFn: async (): Promise<MaintenanceExecution> => {
       const { data, error } = await supabase
         .from('maintenance_executions')
-        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields), locality:localities(id,name), asset:assets(id,name,location), equipment:equipment(id,name,tag)')
+        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,forms_catalog:forms_catalog(id,path)), locality:localities(id,name), equipment:equipment(id,name,tag)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -135,7 +135,7 @@ export function usePublicPendingExecutions() {
     queryFn: async (): Promise<MaintenanceExecution[]> => {
       const { data, error } = await supabase
         .from('maintenance_executions')
-        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,form_url), locality:localities(id,name), equipment:equipment(id,name,tag)')
+        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,forms_catalog:forms_catalog(id,path)), locality:localities(id,name), equipment:equipment(id,name,tag)')
         .eq('status', 'pendente')
         .order('scheduled_date', { ascending: true })
       if (error) throw error
@@ -152,7 +152,7 @@ export function useAllExecutions() {
     queryFn: async (): Promise<MaintenanceExecution[]> => {
       let query = supabase
         .from('maintenance_executions')
-        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields), locality:localities(id,name), asset:assets(id,name,location), equipment:equipment(id,name,tag)')
+        .select('*, plan:maintenance_plans(id,title,plan_type,template_fields,forms_catalog:forms_catalog(id,path)), locality:localities(id,name), equipment:equipment(id,name,tag)')
         .order('created_at', { ascending: false })
 
       const { data, error } = await query

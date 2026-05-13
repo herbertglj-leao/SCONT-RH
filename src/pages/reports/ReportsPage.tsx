@@ -12,6 +12,25 @@ import type { FormFieldMeta } from '@/hooks/useFormMetadata'
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
+function useAllPlans() {
+  return useQuery({
+    queryKey: ['maintenance_plans', 'all_for_reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('maintenance_plans')
+        .select('id, title, plan_type, forms_catalog:forms_catalog(id, path)')
+        .order('title')
+      if (error) throw error
+      return (data ?? []) as {
+        id: string
+        title: string
+        plan_type: string
+        forms_catalog: { id: string; path: string } | null
+      }[]
+    },
+  })
+}
+
 function useLocalities() {
   return useQuery({
     queryKey: ['localities'],
@@ -26,59 +45,42 @@ function useLocalities() {
   })
 }
 
-function usePlansWithForms() {
-  return useQuery({
-    queryKey: ['maintenance_plans', 'with_forms'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('maintenance_plans')
-        .select('id, title, form_url, plan_type')
-        .not('form_url', 'is', null)
-        .order('title')
-      if (error) throw error
-      return (data ?? []) as { id: string; title: string; form_url: string; plan_type: string }[]
-    },
-  })
-}
-
-function formKeyFromUrl(formUrl: string | null | undefined): string {
-  if (!formUrl) return ''
-  const filename = formUrl.split('/').pop() ?? ''
-  return filename.replace(/\.html?$/, '')
-}
-
-interface Submission {
+interface ExecutionRow {
   id: string
-  form_key: string
+  os_number: string | null
+  scheduled_date: string
+  status: string
   form_data: Record<string, unknown>
-  submitted_at: string
-  execution: {
-    os_number: string | null
-    scheduled_date: string
-    locality: { name: string } | null
-  } | null
+  locality: { name: string } | null
 }
 
-function useSubmissions(formKey: string, startDate: string, endDate: string) {
+// Exclui execuções canceladas
+function useExecutionData(planId: string, startDate: string, endDate: string) {
   return useQuery({
-    queryKey: ['form_submissions', 'report', formKey, startDate, endDate],
-    queryFn: async (): Promise<Submission[]> => {
+    queryKey: ['executions', 'report', planId, startDate, endDate],
+    queryFn: async (): Promise<ExecutionRow[]> => {
       let q = supabase
-        .from('form_submissions')
-        .select('id, form_key, form_data, submitted_at, execution:maintenance_executions(os_number, scheduled_date, locality:localities(name))')
-        .eq('form_key', formKey)
-        .order('submitted_at', { ascending: true })
-      if (startDate) q = q.gte('submitted_at', startDate)
-      if (endDate)   q = q.lte('submitted_at', endDate + 'T23:59:59')
+        .from('maintenance_executions')
+        .select('id, os_number, scheduled_date, status, form_data, locality:localities(name)')
+        .eq('plan_id', planId)
+        .neq('status', 'cancelada')
+        .order('scheduled_date', { ascending: true })
+      if (startDate) q = q.gte('scheduled_date', startDate)
+      if (endDate)   q = q.lte('scheduled_date', endDate)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as Submission[]
+      return (data ?? []) as ExecutionRow[]
     },
-    enabled: !!formKey,
+    enabled: !!planId,
   })
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formKeyFromPath(path: string | null | undefined): string {
+  if (!path) return ''
+  return (path.split('/').pop() ?? '').replace(/\.html?$/, '')
+}
 
 function parseRef(refStr: string | null): { op: string; limit: number } | null {
   if (!refStr) return null
@@ -111,15 +113,15 @@ export function ReportsPage() {
   const [endDate,    setEndDate]    = useState('')
   const [localidade, setLocalidade] = useState('')
 
-  const { data: plans = [], isLoading: loadingPlans } = usePlansWithForms()
+  const { data: plans = [], isLoading: loadingPlans } = useAllPlans()
   const selectedPlan = plans.find(p => p.id === planId)
-  const formKey = formKeyFromUrl(selectedPlan?.form_url)
+  const formKey = formKeyFromPath(selectedPlan?.forms_catalog?.path)
 
-  const { data: formMeta } = useFormMetadata(formKey || null)
-  const { data: submissions = [], isLoading: loadingSubs } = useSubmissions(formKey, startDate, endDate)
-  const { data: localities = [] } = useLocalities()
+  const { data: formMeta }                             = useFormMetadata(formKey || null)
+  const { data: executions = [], isLoading: loadingExec } = useExecutionData(planId, startDate, endDate)
+  const { data: localities = [] }                      = useLocalities()
 
-  // Campos com referência definida, sem duplicatas — únicos que fazem sentido monitorar
+  // Campos numéricos com referência definida, sem duplicatas
   const numericFields = useMemo<FormFieldMeta[]>(() => {
     const seen = new Set<string>()
     return (formMeta?.fields ?? []).filter(f => {
@@ -131,26 +133,25 @@ export function ReportsPage() {
 
   const selectedField = numericFields.find(f => f.key === fieldKey)
 
-  // Filtra por localidade e extrai o valor do campo selecionado
   const filtered = useMemo(() => {
-    return submissions
-      .filter(s => !localidade || s.execution?.locality?.name === localidade)
-      .map(s => {
-        const raw = fieldKey ? s.form_data[fieldKey] : null
-        const value = typeof raw === 'number' ? raw : (typeof raw === 'string' ? parseFloat(raw) || null : null)
+    return executions
+      .filter(ex => !localidade || ex.locality?.name === localidade)
+      .map(ex => {
+        const raw   = fieldKey ? ex.form_data[fieldKey] : null
+        const value = typeof raw === 'number' ? raw
+                    : typeof raw === 'string' ? (parseFloat(raw) || null)
+                    : null
         return {
-          date:      s.execution?.scheduled_date ?? s.submitted_at.slice(0, 10),
-          os:        s.execution?.os_number ?? '—',
-          locality:  s.execution?.locality?.name ?? '—',
+          date:       ex.scheduled_date,
+          os:         ex.os_number ?? '—',
+          locality:   ex.locality?.name ?? '—',
           value,
           compliance: checkRef(selectedField?.ref ?? null, value),
-          submitted_at: s.submitted_at,
         }
       })
       .filter(r => r.value !== null)
-  }, [submissions, fieldKey, localidade, selectedField])
+  }, [executions, fieldKey, localidade, selectedField])
 
-  // Agrupa por localidade para o gráfico (uma linha por localidade)
   const chartData = useMemo(() => {
     if (!fieldKey) return []
     const byDate: Record<string, Record<string, number | string>> = {}
@@ -167,8 +168,9 @@ export function ReportsPage() {
     return [...set]
   }, [filtered])
 
-  const refParsed = parseRef(selectedField?.ref ?? null)
-  const failCount = filtered.filter(r => r.compliance === 'fail').length
+  const refParsed  = parseRef(selectedField?.ref ?? null)
+  const failCount  = filtered.filter(r => r.compliance === 'fail').length
+  const hasFormKey = !!formKey
 
   return (
     <div className="h-full flex flex-col">
@@ -197,19 +199,22 @@ export function ReportsPage() {
             className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-metro-orange bg-white"
           >
             <option value="">Selecione o plano de manutenção...</option>
-            {loadingPlans ? <option disabled>Carregando...</option> : plans.map(p => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
+            {loadingPlans
+              ? <option disabled>Carregando...</option>
+              : plans.map(p => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))
+            }
           </select>
 
-          {/* Parâmetro */}
+          {/* Parâmetro — só disponível se o plano tem formulário com metadados */}
           <select
             value={fieldKey}
             onChange={e => setFieldKey(e.target.value)}
-            disabled={!formKey || numericFields.length === 0}
+            disabled={!hasFormKey || numericFields.length === 0}
             className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-metro-orange bg-white disabled:opacity-40"
           >
-            <option value="">Selecione o parâmetro...</option>
+            <option value="">{hasFormKey ? 'Selecione o parâmetro...' : 'Sem parâmetros (plano sem formulário)'}</option>
             {numericFields.map(f => (
               <option key={f.key} value={f.key}>{f.label}{f.unit ? ` (${f.unit})` : ''}</option>
             ))}
@@ -246,24 +251,30 @@ export function ReportsPage() {
           </div>
         )}
 
-        {planId && loadingSubs && <Spinner />}
+        {planId && loadingExec && <Spinner />}
 
-        {planId && !loadingSubs && (
+        {planId && !loadingExec && (
           <>
-            {/* KPIs de resumo */}
+            {/* Aviso: plano sem formulário vinculado */}
+            {planId && !hasFormKey && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                Este plano não possui formulário vinculado — análise de parâmetros indisponível.
+                Os registros de OS abaixo (exceto canceladas) estão disponíveis para consulta.
+              </div>
+            )}
+
+            {/* KPIs */}
             {fieldKey && filtered.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                   <p className="text-2xl font-bold text-metro-navy">{filtered.length}</p>
-                  <p className="text-xs text-gray-400 mt-1">Registros encontrados</p>
+                  <p className="text-xs text-gray-400 mt-1">Registros analisados</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                   <p className="text-2xl font-bold text-metro-navy">
-                    {filtered.length > 0
-                      ? (filtered.reduce((s, r) => s + (r.value ?? 0), 0) / filtered.length).toFixed(2)
-                      : '—'}
+                    {(filtered.reduce((s, r) => s + (r.value ?? 0), 0) / filtered.length).toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Média — {selectedField?.label ?? ''} {selectedField?.unit ?? ''}</p>
+                  <p className="text-xs text-gray-400 mt-1">Média — {selectedField?.label} {selectedField?.unit ?? ''}</p>
                 </div>
                 <div className={`rounded-xl border p-4 ${failCount > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                   <p className={`text-2xl font-bold ${failCount > 0 ? 'text-red-700' : 'text-green-700'}`}>{failCount}</p>
@@ -272,15 +283,13 @@ export function ReportsPage() {
                   </p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-2xl font-bold text-metro-navy">
-                    {selectedField?.ref ?? '—'}
-                  </p>
+                  <p className="text-2xl font-bold text-metro-navy">{selectedField?.ref ?? '—'}</p>
                   <p className="text-xs text-gray-400 mt-1">Referência</p>
                 </div>
               </div>
             )}
 
-            {/* Gráfico de tendência */}
+            {/* Gráfico */}
             {fieldKey && chartData.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
                 <p className="text-xs font-bold text-metro-navy uppercase tracking-wide mb-1">
@@ -289,11 +298,7 @@ export function ReportsPage() {
                 {selectedField?.ref && (
                   <p className="text-xs text-gray-400 mb-4">
                     Referência: <strong>{selectedField.ref}</strong>
-                    {refParsed && (
-                      <span className="ml-2 text-gray-300">
-                        (linha pontilhada no gráfico)
-                      </span>
-                    )}
+                    <span className="ml-2 text-gray-300">(linha pontilhada no gráfico)</span>
                   </p>
                 )}
                 <ResponsiveContainer width="100%" height={280}>
@@ -383,17 +388,20 @@ export function ReportsPage() {
               </div>
             )}
 
-            {planId && !fieldKey && submissions.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-                <p className="text-sm text-gray-400">Selecione um parâmetro para visualizar o gráfico de tendência.</p>
-                <p className="text-xs text-gray-300 mt-1">{submissions.length} submissões encontradas para este plano.</p>
+            {/* Sem dados */}
+            {planId && executions.length === 0 && !loadingExec && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+                <BarChart2 size={36} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-sm text-gray-400">Nenhuma OS encontrada para este plano no período selecionado.</p>
+                <p className="text-xs text-gray-300 mt-1">Execuções canceladas são excluídas da análise.</p>
               </div>
             )}
 
-            {planId && submissions.length === 0 && !loadingSubs && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-                <BarChart2 size={36} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-sm text-gray-400">Nenhuma submissão encontrada para este formulário no período selecionado.</p>
+            {/* Plano tem execuções mas parâmetro não foi selecionado */}
+            {planId && hasFormKey && !fieldKey && executions.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+                <p className="text-sm text-gray-400">Selecione um parâmetro para visualizar o gráfico de tendência.</p>
+                <p className="text-xs text-gray-300 mt-1">{executions.length} OS(s) encontradas para este plano.</p>
               </div>
             )}
           </>
