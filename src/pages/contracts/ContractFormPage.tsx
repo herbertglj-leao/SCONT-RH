@@ -1,23 +1,28 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, FileText, Clock, StickyNote, Calendar } from 'lucide-react'
+import { ArrowLeft, FileText, StickyNote, Calendar, BarChart2, Plus, Trash2 } from 'lucide-react'
 import { contractSchema, type ContractFormData } from '@/schemas/contract.schema'
 import { useCreateContract, useUpdateContract, useContract } from '@/hooks/useContracts'
-import { supabase } from '@/lib/supabase'
+import { useCompanies } from '@/hooks/useMasterData'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import type { Profile } from '@/types'
 
 const statusOptions = [
   { value: 'active',     label: 'Ativo' },
   { value: 'suspended',  label: 'Suspenso' },
   { value: 'expired',    label: 'Expirado' },
   { value: 'terminated', label: 'Encerrado' },
+]
+
+const periodicidadeOptions = [
+  { value: 'Mensal',    label: 'Mensal' },
+  { value: 'Trimestral', label: 'Trimestral' },
+  { value: 'Semestral', label: 'Semestral' },
+  { value: 'Anual',     label: 'Anual' },
 ]
 
 function SectionCard({ icon: Icon, title, children }: {
@@ -43,43 +48,30 @@ export function ContractFormPage() {
   const createMutation = useCreateContract()
   const updateMutation = useUpdateContract(id ?? '')
 
-  const { data: contractors = [] } = useQuery({
-    queryKey: ['profiles', 'contratada'],
-    queryFn: async (): Promise<Profile[]> => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, company_name, role, status, user_id, created_at')
-        .eq('role', 'contratada')
-        .eq('status', 'approved')
-      if (error) throw error
-      return data ?? []
-    },
-  })
+  const { data: companies = [] } = useCompanies()
 
-  const contractorOptions = contractors.map(p => ({
-    value: p.id,
-    label: p.company_name ?? p.full_name ?? p.id,
-  }))
+  const contractorOptions = companies.map(c => ({ value: c.id, label: c.name }))
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContractFormData>({
+  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema),
-    defaultValues: { status: 'active' },
+    defaultValues: { status: 'active', performance_indicators: [], company_id: '' },
   })
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'performance_indicators' })
 
   useEffect(() => {
     if (existing) {
       reset({
-        title:                 existing.title,
-        contract_number:       existing.contract_number,
-        object:                existing.object,
-        contractor_profile_id: existing.contractor_profile_id,
-        value:                 existing.value,
-        start_date:            existing.start_date,
-        end_date:              existing.end_date ?? '',
-        status:                existing.status,
-        sla_response_hours:    existing.sla_response_hours,
-        sla_completion_hours:  existing.sla_completion_hours,
-        notes:                 existing.notes ?? '',
+        title:                  existing.title,
+        contract_number:        existing.contract_number,
+        object:                 existing.object,
+        company_id:             existing.company_id,
+        value:                  existing.value,
+        start_date:             existing.start_date,
+        end_date:               existing.end_date ?? '',
+        status:                 existing.status,
+        performance_indicators: existing.performance_indicators ?? [],
+        notes:                  existing.notes ?? '',
       })
     }
   }, [existing, reset])
@@ -94,7 +86,6 @@ export function ContractFormPage() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Page header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-3 shrink-0">
         <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg text-gray-400 hover:text-metro-navy hover:bg-gray-100">
           <ArrowLeft size={18} />
@@ -108,7 +99,6 @@ export function ContractFormPage() {
       <div className="flex-1 overflow-auto p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl mx-auto space-y-4">
 
-          {/* Dados Gerais */}
           <SectionCard icon={FileText} title="Dados Gerais">
             <Input label="Título do Contrato *" error={errors.title?.message} {...register('title')} />
             <div className="grid grid-cols-2 gap-4">
@@ -125,15 +115,14 @@ export function ContractFormPage() {
               {errors.object && <span className="text-xs text-red-500">{errors.object.message}</span>}
             </div>
             <Select
-              label="Contratada *"
+              label="Empresa Contratada *"
               options={contractorOptions}
-              placeholder="Selecione a empresa contratada"
-              error={errors.contractor_profile_id?.message}
-              {...register('contractor_profile_id')}
+              placeholder="Selecione a empresa"
+              error={errors.company_id?.message}
+              {...register('company_id')}
             />
           </SectionCard>
 
-          {/* Valor Global */}
           <SectionCard icon={FileText} title="Valor do Contrato">
             <Input
               label="Valor Global (R$)"
@@ -144,7 +133,6 @@ export function ContractFormPage() {
             <p className="text-xs text-gray-400">Os valores empenhados e pagamentos são registrados nas telas de Notas de Empenho e Execução Orçamentária.</p>
           </SectionCard>
 
-          {/* Vigência */}
           <SectionCard icon={Calendar} title="Vigência">
             <div className="grid grid-cols-2 gap-4">
               <Input label="Data de Início *" type="date" error={errors.start_date?.message} {...register('start_date')} />
@@ -152,25 +140,64 @@ export function ContractFormPage() {
             </div>
           </SectionCard>
 
-          {/* SLA */}
-          <SectionCard icon={Clock} title="SLA — Nível de Serviço">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Prazo de Resposta (horas)"
-                type="number" min="1" placeholder="Ex: 4"
-                error={errors.sla_response_hours?.message}
-                {...register('sla_response_hours')}
-              />
-              <Input
-                label="Prazo de Conclusão (horas)"
-                type="number" min="1" placeholder="Ex: 48"
-                error={errors.sla_completion_hours?.message}
-                {...register('sla_completion_hours')}
-              />
+          {/* Indicadores de Desempenho */}
+          <SectionCard icon={BarChart2} title="Indicadores de Desempenho">
+            <div className="space-y-3">
+              {fields.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-2">Nenhum indicador cadastrado. Clique em "Adicionar" para incluir.</p>
+              )}
+              {fields.map((field, idx) => (
+                <div key={field.id} className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-metro-navy uppercase tracking-wide">Indicador {idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => remove(idx)}
+                      className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <Input
+                    label="Nome do Indicador *"
+                    placeholder="Ex: Disponibilidade do Sistema"
+                    error={errors.performance_indicators?.[idx]?.nome?.message}
+                    {...register(`performance_indicators.${idx}.nome`)}
+                  />
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      label="Meta *"
+                      placeholder="Ex: ≥ 95"
+                      error={errors.performance_indicators?.[idx]?.meta?.message}
+                      {...register(`performance_indicators.${idx}.meta`)}
+                    />
+                    <Input
+                      label="Unidade *"
+                      placeholder="Ex: %, h, dias"
+                      error={errors.performance_indicators?.[idx]?.unidade?.message}
+                      {...register(`performance_indicators.${idx}.unidade`)}
+                    />
+                    <Select
+                      label="Periodicidade *"
+                      options={periodicidadeOptions}
+                      placeholder="Selecione"
+                      error={errors.performance_indicators?.[idx]?.periodicidade?.message}
+                      {...register(`performance_indicators.${idx}.periodicidade`)}
+                    />
+                  </div>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => append({ nome: '', meta: '', unidade: '', periodicidade: '' })}
+              >
+                <Plus size={14} /> Adicionar Indicador
+              </Button>
             </div>
           </SectionCard>
 
-          {/* Observações */}
           <SectionCard icon={StickyNote} title="Observações">
             <textarea
               rows={3}

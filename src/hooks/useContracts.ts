@@ -12,11 +12,11 @@ export function useContracts() {
     queryFn: async (): Promise<Contract[]> => {
       let query = supabase
         .from('contracts')
-        .select('*, contractor:profiles!contractor_profile_id(id,full_name,company_name), commitment_notes(valor_empenhado), budget_executions(valor_pago)')
+        .select('*, company:companies(id,name), commitment_notes(valor_empenhado), budget_executions(valor_pago)')
         .order('created_at', { ascending: false })
 
-      if (profile?.role === 'contratada') {
-        query = query.eq('contractor_profile_id', profile.id)
+      if (profile?.role === 'contratada' && profile?.company_id) {
+        query = query.eq('company_id', profile.company_id)
       }
 
       const { data, error } = await query
@@ -33,7 +33,7 @@ export function useContract(id: string) {
     queryFn: async (): Promise<Contract> => {
       const { data, error } = await supabase
         .from('contracts')
-        .select('*, contractor:profiles!contractor_profile_id(id,full_name,company_name), assets(*)')
+        .select('*, company:companies(id,name), assets(*)')
         .eq('id', id)
         .single()
       if (error) throw error

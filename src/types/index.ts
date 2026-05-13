@@ -19,7 +19,7 @@ export interface Profile {
 
 export interface Contract {
   id: string
-  contractor_profile_id: string
+  company_id: string
   title: string
   contract_number: string
   object: string
@@ -27,16 +27,22 @@ export interface Contract {
   start_date: string
   end_date: string | null
   status: ContractStatus
-  sla_response_hours: number | null
-  sla_completion_hours: number | null
+  performance_indicators: PerformanceIndicator[]
   documents: ContractDocument[]
   notes: string | null
   created_by: string
   created_at: string
-  contractor?: Pick<Profile, 'id' | 'full_name' | 'company_name'>
+  company?: Pick<Company, 'id' | 'name'>
   assets?: Asset[]
   commitment_notes?: { valor_empenhado: number }[]
   budget_executions?: { valor_pago: number }[]
+}
+
+export interface PerformanceIndicator {
+  nome: string
+  meta: string
+  unidade: string
+  periodicidade: string
 }
 
 export interface ContractDocument {

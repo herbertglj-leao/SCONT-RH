@@ -112,7 +112,7 @@ export function ContractDetailPage() {
             <Badge status={contract.status} />
             <span className="text-xs text-gray-400 font-mono">#{contract.contract_number}</span>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">{contract.contractor?.company_name ?? contract.contractor?.full_name ?? '—'}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{contract.company?.name ?? '—'}</p>
         </div>
         {canManage && (
           <Link to={`/contracts/${id}/edit`}>
@@ -227,22 +227,21 @@ export function ContractDetailPage() {
                   )}
                 </div>
               </div>
-              {(contract.sla_response_hours || contract.sla_completion_hours) && (
+              {(contract.performance_indicators?.length ?? 0) > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <p className="text-xs font-bold text-metro-navy uppercase tracking-wider mb-3">SLA</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {contract.sla_response_hours && (
-                      <div className="text-center bg-blue-50 rounded-lg p-3">
-                        <p className="text-xs text-blue-600 font-medium">Resposta</p>
-                        <p className="text-2xl font-black text-blue-700">{contract.sla_response_hours}h</p>
+                  <p className="text-xs font-bold text-metro-navy uppercase tracking-wider mb-3">Indicadores de Desempenho</p>
+                  <div className="space-y-2">
+                    {contract.performance_indicators.map((ind, i) => (
+                      <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
+                        <div>
+                          <p className="text-sm font-semibold text-metro-navy">{ind.nome}</p>
+                          <p className="text-xs text-gray-400">{ind.periodicidade}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-base font-black text-metro-orange">{ind.meta} <span className="text-sm font-semibold">{ind.unidade}</span></p>
+                        </div>
                       </div>
-                    )}
-                    {contract.sla_completion_hours && (
-                      <div className="text-center bg-indigo-50 rounded-lg p-3">
-                        <p className="text-xs text-indigo-600 font-medium">Conclusão</p>
-                        <p className="text-2xl font-black text-indigo-700">{contract.sla_completion_hours}h</p>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               )}

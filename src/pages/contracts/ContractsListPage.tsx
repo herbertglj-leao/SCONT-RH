@@ -30,7 +30,7 @@ export function ContractsListPage() {
     const matchSearch = !search ||
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       (c.contract_number ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (c.contractor?.company_name ?? '').toLowerCase().includes(search.toLowerCase())
+      (c.company?.name ?? '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || c.status === statusFilter
     return matchSearch && matchStatus
   })
@@ -115,16 +115,13 @@ export function ContractsListPage() {
                         </p>
                         <p className="text-xs text-gray-400 font-mono mt-0.5">#{contract.contract_number}</p>
                         <p className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5 md:hidden">
-                          {contract.contractor?.company_name ?? contract.contractor?.full_name ?? '—'}
+                          {contract.company?.name ?? '—'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 hidden md:table-cell">
                         <p className="text-gray-700 text-xs truncate max-w-[180px]">
-                          {contract.contractor?.company_name ?? contract.contractor?.full_name ?? '—'}
+                          {contract.company?.name ?? '—'}
                         </p>
-                        {contract.sla_response_hours && (
-                          <p className="text-xs text-blue-500 mt-0.5">SLA {contract.sla_response_hours}h</p>
-                        )}
                       </td>
                       <td className="px-5 py-3.5 hidden lg:table-cell whitespace-nowrap">
                         <div className="flex items-center gap-1 text-xs text-gray-500">
