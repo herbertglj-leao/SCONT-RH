@@ -125,7 +125,7 @@ export function FieldPendingOSPage() {
 
                 <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-50 text-metro-orange text-xs font-semibold">
                   <ExternalLink size={12} />
-                  {ex.plan?.form_url ? 'Abrir formulário' : 'Preencher checklist'}
+                  {ex.plan?.forms_catalog ? 'Abrir formulário' : 'Preencher checklist'}
                 </div>
               </button>
             ))}

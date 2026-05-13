@@ -125,7 +125,7 @@ export function MaintenanceExecutionsPage({ planType = 'preventiva' }: Props) {
                     <td className="px-4 py-3">
                       <p className="font-medium text-metro-navy">{exec.plan?.title ?? '—'}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {exec.equipment?.name ?? exec.asset?.name ?? '—'}
+                        {exec.equipment?.name ?? '—'}
                       </p>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell text-gray-700">{exec.locality?.name ?? '—'}</td>

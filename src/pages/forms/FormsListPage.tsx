@@ -31,7 +31,7 @@ export function FormsListPage() {
     const matchSearch =
       !search ||
       (e.os_number ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (e.asset?.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (e.equipment?.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (e.plan?.title ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (e.psa_item ?? '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = !statusFilter || e.status === statusFilter
@@ -138,7 +138,7 @@ export function FormsListPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
-                      <span>{exec.asset?.name ?? '—'}</span>
+                      <span>{exec.equipment?.name ?? '—'}</span>
                       <span>OS: {exec.os_number ?? '—'}</span>
                       <span>{new Date(exec.created_at).toLocaleDateString('pt-BR')}</span>
                     </div>

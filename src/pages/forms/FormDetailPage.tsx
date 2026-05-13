@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useExecution, useUpdateExecutionStatus } from '@/hooks/useExecutions'
 import { useExecutionHistory } from '@/hooks/useHistory'
-import { useFormMetadata, formKeyFromUrl } from '@/hooks/useFormMetadata'
+import { useFormMetadata, formKeyFromUrl as formKeyFromPath } from '@/hooks/useFormMetadata'
 import { useAuth } from '@/hooks/useAuth'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -71,7 +71,7 @@ export function FormDetailPage() {
 
   const { data: exec, isLoading } = useExecution(id ?? '')
   const { data: history } = useExecutionHistory(id ?? '')
-  const formKey = formKeyFromUrl(exec?.plan?.form_url)
+  const formKey = formKeyFromPath(exec?.plan?.forms_catalog?.path)
   const { data: formMeta } = useFormMetadata(formKey)
   const updateStatus = useUpdateExecutionStatus()
 
@@ -182,7 +182,7 @@ export function FormDetailPage() {
             <div>
               <p className="text-xs text-gray-400">Localidade</p>
               <p className="font-medium text-metro-navy">
-                {exec.locality?.name ?? exec.asset?.location ?? '—'}
+                {exec.locality?.name ?? '—'}
               </p>
             </div>
             <div>
