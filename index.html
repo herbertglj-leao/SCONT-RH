@@ -9,7 +9,9 @@
       var redirect = sessionStorage.getItem('spa_redirect');
       if (redirect) {
         sessionStorage.removeItem('spa_redirect');
-        history.replaceState(null, '', '/manutencao' + redirect);
+        var base = '/manutencao';
+        var target = redirect.startsWith(base) ? redirect : base + redirect;
+        history.replaceState(null, '', target);
       }
     </script>
   </head>
