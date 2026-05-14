@@ -15,10 +15,10 @@ const TYPE_LABEL: Record<PlanType, { label: string; className: string }> = {
 }
 
 function PlanViewModal({ plan, onClose }: { plan: MaintenancePlan; onClose: () => void }) {
-  const formPath = plan.forms_catalog?.path ?? null
+  const formPath = (plan.forms_catalog?.path ?? null)?.toLowerCase() ?? null
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
   const formUrl = formPath
-    ? (formPath.startsWith('/') ? window.location.origin + basePath + formPath : formPath)
+    ? (formPath.startsWith('/') ? window.location.origin + basePath + formPath : window.location.origin + basePath + '/' + formPath)
     : null
 
   return (

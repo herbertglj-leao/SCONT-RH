@@ -797,19 +797,65 @@ function renderInstrumentos() { document.getElementById('instrumentos').innerHTM
 function addInstrumento() { instrCount++; document.getElementById('instrumentos').insertAdjacentHTML('beforeend',instrRowHtml(instrCount)) }
 function removeInstrumento(n) { const r=document.getElementById(`instr-row-${n}`); if(r) r.remove() }
 
+// ─── PREENCHE FORMULÁRIO EM MODO READONLY ────────────────────────────────────
+function fillReadonlyData(fd) {
+  if (!fd) return
+  Object.entries(fd).forEach(([key, value]) => {
+    if (key.startsWith('_') || value === null || value === undefined) return
+    if (value === 'Sim' || value === 'Não' || value === 'N/A') {
+      const btn = document.querySelector(`.bool-btn[data-id="${key}"][data-val="${value}"]`)
+      if (btn) { btn.classList.add('active'); boolValues[key] = value }
+    } else {
+      const el = document.getElementById(key)
+      if (el && el.tagName !== 'SELECT') el.value = value
+      else if (el) { for (const o of el.options) if (o.value==value||o.text==value) { o.selected=true; break } }
+    }
+  })
+  // Executantes
+  const execs = fd._executantes || []
+  if (execs.length) {
+    document.getElementById('executantes').innerHTML=''; execCount=0
+    execs.forEach(e => {
+      addExecutante()
+      const nn=String(execCount).padStart(2,'0')
+      const mEl=document.getElementById(`exec_${nn}_matricula`)
+      const sEl=document.getElementById(`exec_${nn}_inicio`)
+      const fEl=document.getElementById(`exec_${nn}_fim`)
+      if(mEl&&e.matricula) mEl.value=e.matricula
+      if(sEl&&e.inicio) sEl.value=e.inicio
+      if(fEl&&e.fim) fEl.value=e.fim
+    })
+  }
+  // Instrumentos
+  const instrs = fd._instrumentos || []
+  if (instrs.length) {
+    document.getElementById('instrumentos').innerHTML=''; instrCount=0
+    instrs.forEach(inst => {
+      addInstrumento()
+      const nEl=document.getElementById(`instr_${instrCount}_nome`)
+      const tEl=document.getElementById(`instr_${instrCount}_tag`)
+      if(nEl&&inst.nome) nEl.value=inst.nome
+      if(tEl&&inst.tag) tEl.value=inst.tag
+    })
+  }
+}
+
 // ─── LOAD EXECUTION ──────────────────────────────────────────────────────────
 async function loadExecution() {
+  const IS_READONLY = new URLSearchParams(window.location.search).get('readonly')==='1'
   if (!EXECUTION_ID) {
-    document.getElementById('btn-submit').disabled=true
-    showToast('Acesso inválido. Abra este formulário pelo link gerado na OS.','error')
+    if(!IS_READONLY){ document.getElementById('btn-submit').disabled=true; showToast('Acesso inválido. Abra este formulário pelo link gerado na OS.','error') }
     return
   }
   try {
     const {data,error} = await sb.from('maintenance_executions')
-      .select('id,os_number,psa_item,scheduled_date,locality_id,status,locality:localities(id,name),plan:maintenance_plans(id,title)')
+      .select('id,os_number,psa_item,scheduled_date,locality_id,status,form_data,locality:localities(id,name),plan:maintenance_plans(id,title)')
       .eq('id',EXECUTION_ID).single()
-    if (error||!data) { showToast('OS não encontrada. Verifique o link.','error'); document.getElementById('btn-submit').disabled=true; return }
-    if (data.status!=='pendente') {
+    if (error||!data) {
+      if(!IS_READONLY){ showToast('OS não encontrada. Verifique o link.','error'); document.getElementById('btn-submit').disabled=true }
+      return
+    }
+    if (!IS_READONLY && data.status!=='pendente') {
       document.querySelectorAll('input,select,textarea,button.bool-btn').forEach(el=>el.disabled=true)
       document.querySelector('.submit-bar').style.display='none'
       document.getElementById('success-screen').style.display='flex'
@@ -817,15 +863,16 @@ async function loadExecution() {
       document.getElementById('success-screen').querySelector('p').textContent='Este formulário já foi enviado anteriormente e não pode ser editado novamente.'
       return
     }
-    // Verificação adicional: checa se já há submissão registrada
-    const {data:subs}=await sb.from('form_submissions').select('id').eq('execution_id',EXECUTION_ID).limit(1)
-    if(subs && subs.length>0){
-      document.querySelectorAll('input,select,textarea,button.bool-btn').forEach(el=>el.disabled=true)
-      document.querySelector('.submit-bar').style.display='none'
-      document.getElementById('success-screen').style.display='flex'
-      document.getElementById('success-screen').querySelector('h2').textContent='Formulário já submetido'
-      document.getElementById('success-screen').querySelector('p').textContent='Este formulário já foi enviado anteriormente.'
-      return
+    if (!IS_READONLY) {
+      const {data:subs}=await sb.from('form_submissions').select('id').eq('execution_id',EXECUTION_ID).limit(1)
+      if(subs && subs.length>0){
+        document.querySelectorAll('input,select,textarea,button.bool-btn').forEach(el=>el.disabled=true)
+        document.querySelector('.submit-bar').style.display='none'
+        document.getElementById('success-screen').style.display='flex'
+        document.getElementById('success-screen').querySelector('h2').textContent='Formulário já submetido'
+        document.getElementById('success-screen').querySelector('p').textContent='Este formulário já foi enviado anteriormente.'
+        return
+      }
     }
     const lock=(id,value)=>{ const el=document.getElementById(id); if(!el) return; el.value=value??''; el.readOnly=true; el.style.background='#f8fafc'; el.style.color='#64748b' }
     lock('os_number',data.os_number)
@@ -840,7 +887,8 @@ async function loadExecution() {
     badge.style.cssText='font-size:11px;background:rgba(255,255,255,.18);border-radius:6px;padding:2px 8px;margin-left:8px;font-weight:600'
     badge.textContent=`OS: ${data.os_number??'—'}`
     document.getElementById('header-info').appendChild(badge)
-  } catch(e) { showToast('Erro ao carregar a OS: '+(e.message??''),'error'); document.getElementById('btn-submit').disabled=true }
+    if (IS_READONLY && data.form_data) fillReadonlyData(data.form_data)
+  } catch(e) { if(!IS_READONLY) { showToast('Erro ao carregar a OS: '+(e.message??''),'error'); document.getElementById('btn-submit').disabled=true } }
 }
 
 // ─── COLLECT DATA ────────────────────────────────────────────────────────────

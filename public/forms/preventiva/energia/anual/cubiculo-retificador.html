@@ -645,34 +645,75 @@ function collectFormData() {
   return data
 }
 
+// ─── FILL READONLY DATA ───────────────────────────────────────────────────────
+function fillReadonlyData(fd) {
+  if (!fd) return
+  Object.entries(fd).forEach(([key, value]) => {
+    if (key.startsWith('_') || value === null || value === undefined) return
+    const strVal = String(value)
+    // Bool buttons use lowercase data-val: "sim", "nao", "na"
+    if (strVal === 'sim' || strVal === 'nao' || strVal === 'na') {
+      const btn = document.querySelector(`.bool-btn[data-key="${key}"][data-val="${strVal}"]`)
+      if (btn) { btn.classList.add('active'); boolState[key] = strVal }
+    } else if (key === 'executantes' && Array.isArray(value)) {
+      value.forEach((ex, i) => {
+        if (i >= execCount) addExecRow()
+        if (ex.matricula) { const el = document.getElementById(`exec_${i}_mat_a`); if (el) el.value = ex.matricula }
+        if (ex.inicio)    { const el = document.getElementById(`exec_${i}_ini_a`); if (el) el.value = ex.inicio }
+        if (ex.fim)       { const el = document.getElementById(`exec_${i}_fim_a`); if (el) el.value = ex.fim }
+      })
+    } else if (key === 'instrumentos' && Array.isArray(value)) {
+      value.forEach((ins, i) => {
+        if (i >= instrCount) addInstrRow()
+        if (ins.instrumento) { const el = document.getElementById(`instr_${i}_nome`); if (el) el.value = ins.instrumento }
+        if (ins.tag)         { const el = document.getElementById(`instr_${i}_tag`);  if (el) el.value = ins.tag }
+      })
+    } else {
+      const el = document.getElementById(key)
+      if (el && el.tagName !== 'SELECT') el.value = strVal
+      else if (el) { for (const o of el.options) if (o.value === strVal || o.text === strVal) { o.selected = true; break } }
+    }
+  })
+}
+
 // ─── LOAD EXECUTION ───────────────────────────────────────────────────────────
 async function loadExecution() {
   const params = new URLSearchParams(window.location.search)
+  const IS_READONLY = params.get('readonly') === '1'
+  const execId = params.get('id')
   const token  = params.get('token')
-  if (!token) { showError('Token não encontrado na URL.'); return }
 
-  const { data: exec, error } = await db
-    .from('maintenance_executions')
-    .select('id, os_number, scheduled_date, status, plan:maintenance_plans(title), locality:localities(name)')
-    .eq('access_token', token)
-    .single()
+  let query = db.from('maintenance_executions')
+    .select('id, os_number, scheduled_date, status, form_data, plan:maintenance_plans(title), locality:localities(name)')
 
-  if (error || !exec) { showError('OS não encontrada ou token inválido.'); return }
-
-  // Já submetida?
-  if (exec.status !== 'pendente') {
-    showSuccess(`Esta OS (${exec.os_number}) já foi submetida anteriormente.`)
+  if (execId) {
+    query = query.eq('id', execId)
+  } else if (token) {
+    query = query.eq('access_token', token)
+  } else {
+    showError('Token ou ID não encontrado na URL.')
     return
   }
-  const { data: existingSub } = await db
-    .from('form_submissions')
-    .select('id')
-    .eq('execution_id', exec.id)
-    .eq('form_key', FORM_KEY)
-    .maybeSingle()
-  if (existingSub) {
-    showSuccess(`Esta OS (${exec.os_number}) já possui formulário enviado.`)
-    return
+
+  const { data: exec, error } = await query.single()
+  if (error || !exec) { showError('OS não encontrada ou token inválido.'); return }
+
+  if (!IS_READONLY) {
+    // Já submetida?
+    if (exec.status !== 'pendente') {
+      showSuccess(`Esta OS (${exec.os_number}) já foi submetida anteriormente.`)
+      return
+    }
+    const { data: existingSub } = await db
+      .from('form_submissions')
+      .select('id')
+      .eq('execution_id', exec.id)
+      .eq('form_key', FORM_KEY)
+      .maybeSingle()
+    if (existingSub) {
+      showSuccess(`Esta OS (${exec.os_number}) já possui formulário enviado.`)
+      return
+    }
   }
 
   executionId = exec.id
@@ -680,6 +721,8 @@ async function loadExecution() {
   document.getElementById('scheduled_date').value = (exec.scheduled_date ?? '').slice(0,10)
   document.getElementById('locality_name').value  = exec.locality?.name ?? ''
   document.getElementById('plan_title').value     = exec.plan?.title ?? 'Cubículo Retificador — Manutenção Anual'
+
+  if (IS_READONLY && exec.form_data) fillReadonlyData(exec.form_data)
 }
 
 // ─── SUBMIT ───────────────────────────────────────────────────────────────────

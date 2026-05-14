@@ -294,10 +294,11 @@ export function FormDetailPage() {
         {/* Formulário preenchido (iframe readonly) */}
         {exec.plan?.forms_catalog?.path && (() => {
           const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
-          const fp = exec.plan.forms_catalog.path
+          // lowercase normaliza capitalização inconsistente no banco (ex: Energia/Anual → energia/anual)
+          const fp = exec.plan.forms_catalog.path.toLowerCase()
           const formUrl = fp.startsWith('/')
             ? window.location.origin + basePath + fp + '?id=' + exec.id
-            : fp + '?id=' + exec.id
+            : window.location.origin + basePath + '/' + fp + '?id=' + exec.id
           const readonlyUrl = formUrl + '&readonly=1'
           return (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

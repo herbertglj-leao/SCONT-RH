@@ -163,9 +163,10 @@ export function NewExecutionModal({ open, onClose, planType }: Props) {
           scheduled_date: data.scheduled_date,
         })
         const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
-        const base = formPath.startsWith('/')
-          ? window.location.origin + basePath + formPath
-          : formPath
+        const fp = formPath.toLowerCase()
+        const base = fp.startsWith('/')
+          ? window.location.origin + basePath + fp
+          : window.location.origin + basePath + '/' + fp
         const link = `${base}?id=${executionId}`
         setGeneratedLink(link)
         setStep('link')
