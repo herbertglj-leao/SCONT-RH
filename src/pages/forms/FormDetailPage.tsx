@@ -100,7 +100,8 @@ export function FormDetailPage() {
   const { data: exec, isLoading } = useExecution(id ?? '')
   const { data: history } = useExecutionHistory(id ?? '')
   const formKey = formKeyFromPath(exec?.plan?.forms_catalog?.path)
-  const { data: formMeta } = useFormMetadata(formKey)
+  const formPath = exec?.plan?.forms_catalog?.path ?? null
+  const { data: formMeta } = useFormMetadata(formKey, formPath)
   const updateStatus = useUpdateExecutionStatus()
   const { data: allEmployees = [] } = useEmployees(exec?.company_id ?? undefined)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
@@ -317,23 +318,33 @@ export function FormDetailPage() {
         })()}
 
         {/* Form data */}
-        {Object.keys(exec.form_data).length > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-metro-navy uppercase tracking-wide mb-3">Dados do Formulário</p>
-            <div className="space-y-3">
-              {Object.entries(exec.form_data).map(([key, value]) => (
-                <div key={key} className="border-b border-gray-50 pb-2 last:border-0">
-                  <p className="text-xs text-gray-400">{key}</p>
-                  <p className="text-sm font-medium text-metro-navy">
-                    {typeof value === 'boolean'
-                      ? (value ? 'Sim ✓' : 'Não ✗')
-                      : String(value ?? '—')}
-                  </p>
-                </div>
-              ))}
+        {Object.keys(exec.form_data).length > 0 && (() => {
+          const fd = exec.form_data
+          const savedLabels = (fd._labels as Record<string, string>) ?? {}
+          const metaLabels = formMeta
+            ? Object.fromEntries(formMeta.fields.map(f => [f.key, f.label]))
+            : {}
+          const labelMap: Record<string, string> = { ...metaLabels, ...savedLabels }
+          const visibleEntries = Object.entries(fd).filter(([k]) => !k.startsWith('_'))
+          if (visibleEntries.length === 0) return null
+          return (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs font-bold text-metro-navy uppercase tracking-wide mb-3">Dados do Formulário</p>
+              <div className="space-y-3">
+                {visibleEntries.map(([key, value]) => (
+                  <div key={key} className="border-b border-gray-50 pb-2 last:border-0">
+                    <p className="text-xs text-gray-400">{labelMap[key] || formatKey(key)}</p>
+                    <p className="text-sm font-medium text-metro-navy">
+                      {typeof value === 'boolean'
+                        ? (value ? 'Sim ✓' : 'Não ✗')
+                        : String(value ?? '—')}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Rejection reason */}
         {exec.rejection_reason && (

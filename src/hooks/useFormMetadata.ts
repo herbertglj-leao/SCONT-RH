@@ -17,11 +17,31 @@ export interface FormMetadata {
   updated_at: string
 }
 
-export function useFormMetadata(formKey: string | null | undefined) {
+export function useFormMetadata(
+  formKey: string | null | undefined,
+  formPath?: string | null,
+) {
   return useQuery({
-    queryKey: ['form_metadata', formKey],
+    queryKey: ['form_metadata', formKey, formPath],
     queryFn: async (): Promise<FormMetadata | null> => {
       if (!formKey) return null
+
+      // 1. Try fetching the static .meta.json co-located with the HTML form
+      if (formPath) {
+        try {
+          const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
+          const metaUrl = `${window.location.origin}${basePath}${formPath.replace(/\.html?$/, '.meta.json')}`
+          const res = await fetch(metaUrl)
+          if (res.ok) {
+            const json = await res.json()
+            return json as FormMetadata
+          }
+        } catch {
+          // fall through to Supabase
+        }
+      }
+
+      // 2. Fallback: Supabase form_field_metadata table
       const { data, error } = await supabase
         .from('form_field_metadata')
         .select('*')
