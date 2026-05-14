@@ -291,57 +291,35 @@ export function FormDetailPage() {
           </div>
         </div>
 
-        {/* Form link */}
+        {/* Formulário preenchido (iframe readonly) */}
         {exec.plan?.forms_catalog?.path && (() => {
           const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
           const fp = exec.plan.forms_catalog.path
-          const formUrl = fp.startsWith('/') ? window.location.origin + basePath + fp + '?id=' + exec.id : fp + '?id=' + exec.id
+          const formUrl = fp.startsWith('/')
+            ? window.location.origin + basePath + fp + '?id=' + exec.id
+            : fp + '?id=' + exec.id
+          const readonlyUrl = formUrl + '&readonly=1'
           return (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-bold text-metro-navy uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <FileText size={12} /> Formulário da OS
-              </p>
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
-                <ExternalLink size={13} className="text-blue-400 shrink-0" />
-                <span className="flex-1 text-xs text-blue-600 font-mono truncate">{fp}</span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <p className="text-xs font-bold text-metro-navy uppercase tracking-wide flex items-center gap-1.5">
+                  <FileText size={12} /> Formulário Preenchido
+                </p>
                 <a
                   href={formUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
+                  className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
                 >
-                  Abrir
+                  <ExternalLink size={12} /> Abrir em nova aba
                 </a>
               </div>
-            </div>
-          )
-        })()}
-
-        {/* Form data */}
-        {Object.keys(exec.form_data).length > 0 && (() => {
-          const fd = exec.form_data
-          const savedLabels = (fd._labels as Record<string, string>) ?? {}
-          const metaLabels = formMeta
-            ? Object.fromEntries(formMeta.fields.map(f => [f.key, f.label]))
-            : {}
-          const labelMap: Record<string, string> = { ...metaLabels, ...savedLabels }
-          const visibleEntries = Object.entries(fd).filter(([k]) => !k.startsWith('_'))
-          if (visibleEntries.length === 0) return null
-          return (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-bold text-metro-navy uppercase tracking-wide mb-3">Dados do Formulário</p>
-              <div className="space-y-3">
-                {visibleEntries.map(([key, value]) => (
-                  <div key={key} className="border-b border-gray-50 pb-2 last:border-0">
-                    <p className="text-xs text-gray-400">{labelMap[key] || formatKey(key)}</p>
-                    <p className="text-sm font-medium text-metro-navy">
-                      {typeof value === 'boolean'
-                        ? (value ? 'Sim ✓' : 'Não ✗')
-                        : String(value ?? '—')}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <iframe
+                src={readonlyUrl}
+                title="Formulário preenchido"
+                className="w-full border-0"
+                style={{ height: '70vh', minHeight: 480 }}
+              />
             </div>
           )
         })()}
@@ -453,7 +431,7 @@ export function FormDetailPage() {
               {exec.status === 'em_analise' && (
                 <>
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     onClick={runAnalysis}
                     className="flex-1 !border-metro-navy !text-metro-navy hover:!bg-metro-navy hover:!text-white"
                   >

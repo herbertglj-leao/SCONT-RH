@@ -55,6 +55,11 @@
     .meas-table td:nth-child(3) { text-align:center; font-size:12px; color:#475569; background:#f8fafc; }
     .meas-table td:last-child { text-align:center; }
     .meas-input { width:100%; min-width:80px; border-radius:6px; text-align:right; padding:5px 8px; }
+    /* Modo leitura (readonly=1) */
+    .readonly-mode .submit-bar { display:none !important }
+    .readonly-mode input, .readonly-mode textarea, .readonly-mode select { pointer-events:none; background:#f8fafc !important; cursor:default; }
+    .readonly-mode .bool-btn { pointer-events:none; }
+    .readonly-mode .btn-add-row { display:none; }
     .exec-grid { display:grid; grid-template-columns:180px 1fr 1fr 32px; gap:8px; padding:6px 0; border-bottom:1px solid #f1f5f9; align-items:center; }
     .exec-grid:last-child { border-bottom:none; }
     .exec-num { font-size:11px; font-weight:700; color:#94a3b8; }
@@ -976,6 +981,8 @@ async function registerFormMetadata() {
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
+  if(new URLSearchParams(window.location.search).get('readonly')==='1')
+    document.body.classList.add('readonly-mode')
   renderBoolGroups(); renderRele64V(); renderDiaIgt(); renderLeitura()
   renderExecutantes(); renderInstrumentos()
   registerFormMetadata()

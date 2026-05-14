@@ -48,6 +48,11 @@
     .meas-table td.ref { text-align:center; font-size:12px; color:#475569; background:#f8fafc; white-space:nowrap; }
     .meas-table td.val { text-align:center; min-width:110px; }
     .meas-input { width:100%; border-radius:6px; text-align:right; padding:5px 8px; font-size:13px; }
+    /* Modo leitura (readonly=1) */
+    .readonly-mode .submit-bar { display:none !important }
+    .readonly-mode input, .readonly-mode textarea, .readonly-mode select { pointer-events:none; background:#f8fafc !important; cursor:default; }
+    .readonly-mode .bool-btn { pointer-events:none; }
+    .readonly-mode .btn-add-row { display:none; }
     .meas-unit { display:flex; align-items:center; gap:5px; }
     .meas-unit span { font-size:11px; color:#64748b; white-space:nowrap; }
 
@@ -644,6 +649,8 @@ async function submitForm() {
 
 // ─── Inicialização ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  if(new URLSearchParams(window.location.search).get('readonly')==='1')
+    document.body.classList.add('readonly-mode')
   // Renderiza checklists e tabelas de medição para cada disjuntor
   for (const d of DISJ) {
     renderChecklist(d, `ck-${d}`)
